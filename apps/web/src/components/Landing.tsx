@@ -49,11 +49,6 @@ export default function Landing() {
               <Link href="/login" style={{ ...btnPrimary, padding: "14px 26px", fontSize: 15 }}>Book a court →</Link>
               <a href="#how" style={{ padding: "14px 24px", borderRadius: 13, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15 }}>See how it works</a>
             </div>
-            <div style={{ display: "flex", gap: 26, marginTop: 10, flexWrap: "wrap" }}>
-              <Stat n="3" l="Premium courts" />
-              <Stat n="1,200+" l="Games played" />
-              <Stat n="4.9★" l="Player rating" />
-            </div>
           </div>
 
           {/* Hero photo (drop a real photo at /public/hero.jpg to replace the illustration) */}
@@ -111,7 +106,7 @@ export default function Landing() {
       <footer style={{ borderTop: `1px solid ${C.border}` }}>
         <div style={{ maxWidth: 1120, margin: "0 auto", padding: isMobile ? "20px 16px" : "24px 22px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
           <Brand size={30} subtitle="" />
-          <span style={{ marginLeft: "auto", fontSize: 13, color: C.faint }}>© {new Date().getFullYear()} {branding.appName} · Demo prototype</span>
+          <span style={{ marginLeft: "auto", fontSize: 13, color: C.faint }}>© {new Date().getFullYear()} {branding.appName}</span>
           <Link href="/admin/login" style={{ fontSize: 13, color: C.muted, fontWeight: 600 }}>Admin login</Link>
         </div>
       </footer>
@@ -122,15 +117,6 @@ export default function Landing() {
 const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", border: "none", borderRadius: 13, background: C.greenGrad, color: "#fff", fontFamily: FONT_DISPLAY, fontWeight: 700, cursor: "pointer", boxShadow: "0 8px 20px -8px rgba(22,163,74,.8)" };
 const link: React.CSSProperties = { fontSize: 13.5, fontWeight: 600, color: C.muted };
 
-function Stat({ n, l }: { n: string; l: string }) {
-  return (
-    <div>
-      <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 24, color: C.ink }}>{n}</div>
-      <div style={{ fontSize: 12.5, color: C.faint, fontWeight: 600 }}>{l}</div>
-    </div>
-  );
-}
-
 const FEATURES = [
   { icon: "📅", title: "Real-time availability", desc: "See every open slot across courts, live. No double-bookings, no phone tag." },
   { icon: "💸", title: "Fair peak pricing", desc: "Transparent peak and off-peak rates shown on every slot before you commit." },
@@ -140,6 +126,6 @@ const FEATURES = [
 
 const STEPS = [
   { title: "Pick your slot", desc: "Choose a court, tap the hours you want. Your total is calculated instantly." },
-  { title: "Pay & upload proof", desc: "Pay by GCash or bank transfer and upload your receipt, your slot is held while you do." },
+  { title: "Pay & upload proof", desc: "Pay using any method the facility accepts and upload your receipt, your slot is held while you do." },
   { title: "Get confirmed", desc: "An admin verifies your payment and your booking is confirmed. See you on the court!" },
 ];

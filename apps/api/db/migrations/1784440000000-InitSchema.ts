@@ -16,11 +16,14 @@ export class InitSchema1784440000000 implements MigrationInterface {
   name = 'InitSchema1784440000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Every table's id defaults to uuid_generate_v4(). This is NOT enabled by
-    // default in a fresh Postgres database — the old history relied on the
-    // extension already being present, which only held because the dev database
-    // predated it.
-    await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+    // Ids default to gen_random_uuid(), which is core Postgres 13+ and lives in
+    // pg_catalog — always on the search_path, no extension required.
+    //
+    // The earlier history used uuid_generate_v4() from uuid-ossp. That is not
+    // enabled by default in a fresh database, and on Supabase the extension is
+    // installed into a separate `extensions` schema, so the function may not
+    // resolve at all depending on the connection's search_path — the migration
+    // would die on the first CREATE TABLE.
 
     // --- users -------------------------------------------------------------
     // password_hash is nullable: customers sign in with Google and never have
@@ -28,7 +31,7 @@ export class InitSchema1784440000000 implements MigrationInterface {
     // in with a password and never have one.
     await queryRunner.query(`
       CREATE TABLE "users" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "email" character varying NOT NULL,
         "password_hash" character varying,
         "name" character varying NOT NULL DEFAULT '',
@@ -54,7 +57,7 @@ export class InitSchema1784440000000 implements MigrationInterface {
     // --- courts ------------------------------------------------------------
     await queryRunner.query(`
       CREATE TABLE "courts" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "name" character varying NOT NULL,
         "surface" character varying NOT NULL,
         "peak_rate" integer NOT NULL,
@@ -104,7 +107,7 @@ export class InitSchema1784440000000 implements MigrationInterface {
     // court.
     await queryRunner.query(`
       CREATE TABLE "overrides" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "label" character varying NOT NULL,
         "reason" character varying NOT NULL,
         "court_id" character varying NOT NULL,
@@ -130,7 +133,7 @@ export class InitSchema1784440000000 implements MigrationInterface {
     // Storage (proof_path), but the entity still maps this column.
     await queryRunner.query(`
       CREATE TABLE "bookings" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "ref" character varying NOT NULL,
         "customer_id" uuid,
         "court_id" uuid NOT NULL,
@@ -163,7 +166,7 @@ export class InitSchema1784440000000 implements MigrationInterface {
     // court-rate or peak-hour changes never reprice an existing hold/booking.
     await queryRunner.query(`
       CREATE TABLE "booking_slots" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "booking_id" uuid NOT NULL,
         "date" date NOT NULL,
         "hour" integer NOT NULL,
@@ -185,7 +188,7 @@ export class InitSchema1784440000000 implements MigrationInterface {
     // stored; the raw `pickleball-…` value is shown once at creation.
     await queryRunner.query(`
       CREATE TABLE "api_keys" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "name" character varying NOT NULL,
         "key_hash" character varying NOT NULL,
         "prefix" character varying NOT NULL,

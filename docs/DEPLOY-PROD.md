@@ -60,13 +60,22 @@ sandboxed shells.
 `.env` through the `create-env` step):
 
 `pickleball-jwt-secret`, `pickleball-db-password`, `pickleball-db-host`,
-`pickleball-db-port`, `pickleball-db-username`
+`pickleball-db-port`, `pickleball-db-username`, `pickleball-supabase-service-role-key`
 
 **Cloud Build substitutions** (non-sensitive, plaintext in the trigger):
 
 `_NODE_ENV`, `_PORT`, `_DB_NAME`, `_DB_SYNCHRONIZE`, `_DB_LOGGING`, `_DB_SSL`,
 `_JWT_EXPIRES_IN`, `_BCRYPT_ROUNDS`, `_CORS_ORIGINS`, `_THROTTLE_TTL`, `_THROTTLE_LIMIT`,
-and web/admin's `_NEXT_PUBLIC_API_BASE_URL`
+`_GOOGLE_CLIENT_ID`, `_SUPABASE_URL`, `_SUPABASE_RECEIPTS_BUCKET`, `_SUPABASE_PUBLIC_BUCKET`,
+and web/admin's `_NEXT_PUBLIC_API_BASE_URL` / `_NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+
+The Supabase **service-role key** is the only sensitive Supabase value — the project URL and
+bucket names are not. It is server-side only and must never appear in a `NEXT_PUBLIC_` var.
+
+`GOOGLE_CLIENT_ID` (api) and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (web) must be the **same** OAuth
+Web application client ID: the browser requests a token for it and the API verifies the token
+was minted for it. A mismatch fails every sign-in with a 401. Both demo hostnames must also be
+authorized JavaScript origins on that client.
 
 ### Two deliberate deviations from the standard split
 
@@ -132,13 +141,13 @@ gcloud app deploy dispatch.yaml --project=pickleball-system-502915
 
 Order matters — dispatch rules pointing at a service that doesn't exist yet will fail.
 
-## Also required for a working demo
+## Behaviour when optional config is missing
 
-- **`GOOGLE_CLIENT_ID`** is not yet wired into the API cloudbuild. Unset, customer sign-in
-  returns 503 by design (it does not degrade to a permissive fallback). You also need both
-  browser hostnames registered as authorized JavaScript origins on the OAuth client.
-- **`SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`** are likewise unwired. Without them
-  `StorageService` disables itself and payment receipts are not persisted.
+- **Google sign-in** returns **503** if `GOOGLE_CLIENT_ID` is empty. This is deliberate — it is
+  the one service that must not degrade to a permissive fallback, because a fallback would mean
+  accepting unverified identities.
+- **Supabase Storage** disables itself if `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are
+  empty. The app still runs; payment receipts just aren't persisted.
 
 ## Troubleshooting
 

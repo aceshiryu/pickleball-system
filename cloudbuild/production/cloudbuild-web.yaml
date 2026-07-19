@@ -10,6 +10,9 @@ steps:
     args: ['run', 'build:web']
     env:
       - 'NEXT_PUBLIC_API_BASE_URL=${_NEXT_PUBLIC_API_BASE_URL}'
+      # Must be the SAME OAuth Web client ID the API verifies against — the API
+      # rejects any ID token minted for a different client.
+      - 'NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_NEXT_PUBLIC_GOOGLE_CLIENT_ID}'
 
   # Next.js output:'standalone' → self-contained server under apps/web/.next/standalone.
   # Copy the static assets + public/ that standalone omits, drop the env app.yaml,
@@ -66,6 +69,7 @@ substitutions:
   _NODE_VERSION: '22'
   _GCP_PROJECT_ID: 'pickleball-system-502915'
   _NEXT_PUBLIC_API_BASE_URL: 'https://demo-api.bookly-ph.com/api'
+  _NEXT_PUBLIC_GOOGLE_CLIENT_ID: ''
 
 options:
   logging: CLOUD_LOGGING_ONLY

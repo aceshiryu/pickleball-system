@@ -50,9 +50,6 @@ export function CustomerLogin() {
           <GoogleIcon /> {busy ? "Signing in…" : "Continue with Google"}
         </button>
         {error && <div style={{ fontSize: 12.5, color: "#e11d48", marginTop: 10, textAlign: "center", lineHeight: 1.5 }}>{error}</div>}
-        <p style={{ fontSize: 11, color: C.faint, textAlign: "center", marginTop: 20, lineHeight: 1.6 }}>
-          Demo prototype, no real payment is processed.
-        </p>
       </div>
       <div style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: C.muted }}>
         Facility staff? <Link href="/admin/login" style={{ fontWeight: 600 }}>Admin login</Link>

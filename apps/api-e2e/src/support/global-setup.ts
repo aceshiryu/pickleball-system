@@ -74,8 +74,8 @@ module.exports = async function () {
   });
   await ds.initialize();
 
-  // uuid_generate_v4() default relies on the uuid-ossp extension.
-  await ds.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+  // No CREATE EXTENSION needed: the schema uses gen_random_uuid(), which is
+  // core Postgres 13+ rather than uuid-ossp.
   await ds.runMigrations();
 
   // Clean slate each run.

@@ -32,6 +32,7 @@ steps:
       - 'DB_USERNAME'
       - 'DB_PASSWORD'
       - 'JWT_SECRET'
+      - 'SUPABASE_SERVICE_ROLE_KEY'
     env:
       - 'NODE_ENV=${_NODE_ENV}'
       - 'PORT=${_PORT}'
@@ -44,6 +45,15 @@ steps:
       - 'CORS_ORIGINS=${_CORS_ORIGINS}'
       - 'THROTTLE_TTL=${_THROTTLE_TTL}'
       - 'THROTTLE_LIMIT=${_THROTTLE_LIMIT}'
+      # Google sign-in (customers). Not a secret — it is the public OAuth Web
+      # client ID, and the browser sends the same value. Unset makes customer
+      # sign-in return 503 rather than degrade to a permissive fallback.
+      - 'GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}'
+      # Supabase Storage. Only the service-role key is sensitive (secretEnv above);
+      # the project URL and bucket names are not.
+      - 'SUPABASE_URL=${_SUPABASE_URL}'
+      - 'SUPABASE_RECEIPTS_BUCKET=${_SUPABASE_RECEIPTS_BUCKET}'
+      - 'SUPABASE_PUBLIC_BUCKET=${_SUPABASE_PUBLIC_BUCKET}'
 
   - name: 'node:${_NODE_VERSION}'
     id: 'install-prod-deps'
@@ -108,6 +118,12 @@ substitutions:
   _CORS_ORIGINS: 'https://demo.bookly-ph.com,https://demo-admin.bookly-ph.com'
   _THROTTLE_TTL: '60'
   _THROTTLE_LIMIT: '100'
+  # Must be the SAME OAuth Web client ID the web app builds with, and both demo
+  # hostnames must be authorized JavaScript origins on that client.
+  _GOOGLE_CLIENT_ID: ''
+  _SUPABASE_URL: ''
+  _SUPABASE_RECEIPTS_BUCKET: 'receipts'
+  _SUPABASE_PUBLIC_BUCKET: 'brand'
 
 availableSecrets:
   secretManager:
@@ -121,6 +137,8 @@ availableSecrets:
       env: 'DB_PASSWORD'
     - versionName: projects/${_GCP_PROJECT_ID}/secrets/pickleball-jwt-secret/versions/latest
       env: 'JWT_SECRET'
+    - versionName: projects/${_GCP_PROJECT_ID}/secrets/pickleball-supabase-service-role-key/versions/latest
+      env: 'SUPABASE_SERVICE_ROLE_KEY'
 
 options:
   logging: CLOUD_LOGGING_ONLY

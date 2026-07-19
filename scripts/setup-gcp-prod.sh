@@ -111,12 +111,21 @@ create_secret "${SEC}jwt-secret" "$V_JWT"
 read -rsp "  DB_PASSWORD (hidden): " V_DBPW; echo
 create_secret "${SEC}db-password" "$V_DBPW"
 
+read -rsp "  SUPABASE_SERVICE_ROLE_KEY (hidden — server-side only, never in a NEXT_PUBLIC_ var): " V_SRK; echo
+create_secret "${SEC}supabase-service-role-key" "$V_SRK"
+
 read -rp  "  DB_HOST: "                  V_DBH; create_secret "${SEC}db-host"     "$V_DBH"
 read -rp  "  DB_PORT [5432]: "           V_DBP; create_secret "${SEC}db-port"     "${V_DBP:-5432}"
 read -rp  "  DB_USERNAME: "              V_DBU; create_secret "${SEC}db-username" "$V_DBU"
 
 # ------------------------------------------------- Phase E — Cloud Build triggers
 say "Phase E — Cloud Build triggers"
+
+# Non-sensitive, but they differ per project so they can't be hardcoded. The
+# SAME Google client ID goes to both the API (which verifies the token) and the
+# web build (which requests it) — a mismatch fails every sign-in with a 401.
+read -rp "  GOOGLE_CLIENT_ID (OAuth 2.0 *Web application* client ID): " V_GID
+read -rp "  SUPABASE_URL (https://<ref>.supabase.co): "                 V_SURL
 read -rp "  Cloud Build connection name (from the console Connect screen): " CONN
 
 if ! gcloud builds repositories describe "$GH_REPO" \
@@ -139,11 +148,15 @@ API_SUBS="${API_SUBS},_DB_SYNCHRONIZE=false,_DB_LOGGING=false,_DB_SSL=true"
 API_SUBS="${API_SUBS},_JWT_EXPIRES_IN=7d,_BCRYPT_ROUNDS=10"
 API_SUBS="${API_SUBS},_CORS_ORIGINS=https://${WEB_HOST}\\,https://${ADMIN_HOST}"
 API_SUBS="${API_SUBS},_THROTTLE_TTL=60,_THROTTLE_LIMIT=100"
+API_SUBS="${API_SUBS},_GOOGLE_CLIENT_ID=${V_GID}"
+API_SUBS="${API_SUBS},_SUPABASE_URL=${V_SURL}"
+API_SUBS="${API_SUBS},_SUPABASE_RECEIPTS_BUCKET=receipts,_SUPABASE_PUBLIC_BUCKET=brand"
 
 # NEXT_PUBLIC_* is inlined at BUILD time by Next, so it comes from the trigger
 # substitution rather than App Engine env_variables.
 WEB_SUBS="_GCP_PROJECT_ID=${PROJECT_ID}"
 WEB_SUBS="${WEB_SUBS},_NEXT_PUBLIC_API_BASE_URL=https://${API_HOST}/api"
+WEB_SUBS="${WEB_SUBS},_NEXT_PUBLIC_GOOGLE_CLIENT_ID=${V_GID}"
 
 ADMIN_SUBS="_GCP_PROJECT_ID=${PROJECT_ID}"
 ADMIN_SUBS="${ADMIN_SUBS},_NEXT_PUBLIC_API_BASE_URL=https://${API_HOST}/api"
