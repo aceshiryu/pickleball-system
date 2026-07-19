@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { Brand } from "../ui";
 import { C, FONT_DISPLAY, avatarBg, initials } from "@/lib/theme";
@@ -10,7 +9,6 @@ import MyBookings from "./MyBookings";
 
 export default function CustomerApp() {
   const { currentCustomer, logout } = useStore();
-  const router = useRouter();
   const [screen, setScreen] = useState<"book" | "mine">("book");
   const [menu, setMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -48,7 +46,6 @@ export default function CustomerApp() {
             <div style={{ fontSize: 12, color: C.faint }}>{currentCustomer.email}</div>
           </div>
           <div style={{ height: 1, background: C.border2, margin: "6px 0" }} />
-          <button onClick={() => router.push("/admin/login")} style={{ width: "100%", textAlign: "left", padding: "8px 10px", fontSize: 13, color: C.slate, background: "none", border: "none", borderRadius: 8, cursor: "pointer" }}>Switch to Admin</button>
           <button onClick={logout} style={{ width: "100%", textAlign: "left", padding: "8px 10px", fontSize: 13, color: C.blockInk2, background: "none", border: "none", borderRadius: 8, cursor: "pointer" }}>Sign out</button>
         </div>
       )}
@@ -63,7 +60,6 @@ export default function CustomerApp() {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Brand size={32} subtitle="" />
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-                <button onClick={() => router.push("/admin/login")} style={{ fontSize: 12.5, fontWeight: 600, color: C.muted, background: "none", border: "none", cursor: "pointer" }}>Admin ↷</button>
                 {avatarMenu}
               </div>
             </div>
@@ -80,7 +76,6 @@ export default function CustomerApp() {
               <button onClick={() => setScreen("mine")} style={navBtn(screen === "mine")}>My bookings</button>
             </nav>
             <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-              <button onClick={() => router.push("/admin/login")} style={{ fontSize: 12.5, fontWeight: 600, color: C.muted, background: "none", border: "none", cursor: "pointer" }}>Admin ↷</button>
               {avatarMenu}
             </div>
           </div>

@@ -51,10 +51,7 @@ export function CustomerLogin() {
         </button>
         {error && <div style={{ fontSize: 12.5, color: "#e11d48", marginTop: 10, textAlign: "center", lineHeight: 1.5 }}>{error}</div>}
       </div>
-      <div style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: C.muted }}>
-        Facility staff? <Link href="/admin/login" style={{ fontWeight: 600 }}>Admin login</Link>
-      </div>
-      <div style={{ textAlign: "center", marginTop: 6 }}>
+      <div style={{ textAlign: "center", marginTop: 16 }}>
         <Link href="/" style={{ fontSize: 12.5, color: C.faint }}>← Back to home</Link>
       </div>
     </Shell>

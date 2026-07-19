@@ -26,7 +26,6 @@ export default function Landing() {
           <nav style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: isMobile ? 12 : 18 }}>
             {!isMobile && <a href="#features" style={link}>Features</a>}
             {!isMobile && <a href="#how" style={link}>How it works</a>}
-            <Link href="/admin/login" style={{ fontSize: 13.5, fontWeight: 600, color: C.muted }}>Admin</Link>
             <Link href="/login" style={{ ...btnPrimary, padding: "9px 18px", fontSize: 14 }}>Log in</Link>
           </nav>
         </div>
@@ -107,7 +106,6 @@ export default function Landing() {
         <div style={{ maxWidth: 1120, margin: "0 auto", padding: isMobile ? "20px 16px" : "24px 22px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
           <Brand size={30} subtitle="" />
           <span style={{ marginLeft: "auto", fontSize: 13, color: C.faint }}>© {new Date().getFullYear()} {branding.appName}</span>
-          <Link href="/admin/login" style={{ fontSize: 13, color: C.muted, fontWeight: 600 }}>Admin login</Link>
         </div>
       </footer>
     </div>
