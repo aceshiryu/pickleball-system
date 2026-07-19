@@ -36,7 +36,6 @@ steps:
       - 'NODE_ENV=${_NODE_ENV}'
       - 'PORT=${_PORT}'
       - 'DB_NAME=${_DB_NAME}'
-      - 'DB_SCHEMA=${_DB_SCHEMA}'
       - 'DB_SYNCHRONIZE=${_DB_SYNCHRONIZE}'
       - 'DB_LOGGING=${_DB_LOGGING}'
       - 'DB_SSL=${_DB_SSL}'
@@ -91,17 +90,14 @@ steps:
 # stays as substitutions. Values mirror apps/api/.env.example.
 #
 # DB_NAME is deliberately NOT a secret: several projects share one Supabase
-# project, where the database is always called `postgres`. It identifies nothing
-# on its own — the isolation comes from _DB_SCHEMA, which must differ per
-# project AND per environment. Create the schema once before the first deploy:
-#   CREATE SCHEMA IF NOT EXISTS pickleball_dev;
+# project, where the database is always called `postgres`, so the value is the
+# same everywhere and identifies nothing on its own.
 substitutions:
   _NODE_VERSION: '22'
   _GCP_PROJECT_ID: 'pickleball'
   _NODE_ENV: 'development'
   _PORT: '8080'
   _DB_NAME: 'postgres'
-  _DB_SCHEMA: 'pickleball_dev'
   _DB_SYNCHRONIZE: 'false'
   _DB_LOGGING: 'true'
   _DB_SSL: 'true'

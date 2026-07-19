@@ -10,11 +10,6 @@ export const typeOrmConfig = (
   username: config.get<string>('DB_USERNAME'),
   password: config.get<string>('DB_PASSWORD'),
   database: config.get<string>('DB_NAME'),
-  // Several projects share one Supabase project — the database is always
-  // `postgres`, so isolation comes from the schema, not the database name.
-  // Defaults to `public` so a local single-purpose Postgres needs no config.
-  // The schema must already exist; TypeORM will not create it.
-  schema: config.get<string>('DB_SCHEMA') || 'public',
   synchronize: config.get<string>('DB_SYNCHRONIZE') === 'true',
   logging: config.get<string>('DB_LOGGING') === 'true',
   // Managed Postgres (Supabase, Cloud SQL public IP) requires TLS. Gated on DB_SSL

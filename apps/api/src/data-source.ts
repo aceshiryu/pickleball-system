@@ -12,9 +12,6 @@ export default new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  // Must match typeorm.config.ts, or migrations land in a different schema
-  // than the one the running app reads.
-  schema: process.env.DB_SCHEMA || 'public',
   entities: [join(__dirname, '**', '*.entity.{ts,js}')],
   migrations: [join(__dirname, '..', 'db', 'migrations', '*.{ts,js}')],
   synchronize: false,
