@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import type { PaymentMethod } from "@/lib/types";
-import { C, FONT_DISPLAY } from "@/lib/theme";
+import type { PaymentMethod } from "@shared/lib/types";
+import { C, FONT_DISPLAY } from "@shared/lib/theme";
 
 // Read-only payment details a customer sees at checkout / on a held booking:
 // the facility's accepted methods, each with the phone, bank account, and QR

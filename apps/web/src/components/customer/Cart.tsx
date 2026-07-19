@@ -1,40 +1,19 @@
 "use client";
 
 import React from "react";
-import type { Court } from "@/lib/types";
-import type { SelItem } from "@/lib/store";
-import { useStore } from "@/lib/store";
-import { hourRange, prettyDate } from "@/lib/dates";
-import { peso, slotRate, type PeakSchedule } from "@/lib/pricing";
-import { C, FONT_DISPLAY } from "@/lib/theme";
+import type { Court } from "@shared/lib/types";
+import type { SelItem } from "@shared/lib/store";
+import { useStore } from "@shared/lib/store";
+import { hourRange, prettyDate } from "@shared/lib/dates";
+import { peso } from "@shared/lib/pricing";
+import { cartTotal, groupByCourt } from "@shared/lib/cart";
+import { C, FONT_DISPLAY } from "@shared/lib/theme";
+
+// Re-exported so existing `./Cart` imports keep working after the helpers moved
+// to the shared lib.
+export { cartTotal, groupByCourt };
 
 const keyOf = (s: SelItem) => `${s.courtId}#${s.date}#${s.hour}`;
-
-// Cart contents aren't booked yet, so they price live against the current
-// schedule — they'll only be frozen once the slots are held.
-export function cartTotal(
-  items: SelItem[],
-  courts: Court[],
-  schedule: PeakSchedule
-): number {
-  return items.reduce((sum, it) => {
-    const c = courts.find((x) => x.id === it.courtId);
-    return c ? sum + slotRate(c, it.date, it.hour, schedule) : sum;
-  }, 0);
-}
-
-export function groupByCourt(items: SelItem[], courts: Court[]) {
-  const map = new Map<string, SelItem[]>();
-  for (const it of items) {
-    const arr = map.get(it.courtId) ?? [];
-    arr.push(it);
-    map.set(it.courtId, arr);
-  }
-  return Array.from(map.entries()).map(([courtId, slots]) => ({
-    court: courts.find((c) => c.id === courtId)!,
-    slots: slots.sort((a, b) => (a.date === b.date ? a.hour - b.hour : a.date < b.date ? -1 : 1)),
-  }));
-}
 
 export function CartGroups({
   items,

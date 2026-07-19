@@ -16,18 +16,14 @@ dispatch:
   - url: 'demo-api.bookly-ph.com/*'
     service: pickleball-api
 
-  # --- Admin ---------------------------------------------------------------
-  # apps/admin. NOTE: this is currently the project generator's todo scaffold,
-  # deployed to prove the pipeline end to end. Its only screen calls the /todos
-  # endpoints, which no longer exist in the API, so the page loads and then
-  # reports a load failure.
-  #
-  # The REAL admin console is not here — it is a route inside the customer web
-  # app, reachable at demo.bookly-ph.com/admin.
+  # --- Admin console -------------------------------------------------------
+  # apps/admin — the real facility console (courts, bookings, approvals,
+  # settings). Staff sign in with email + password at /login; the console is
+  # the root. Shares its store + UI with the customer app via libs/web-shared.
   - url: 'demo-admin.bookly-ph.com/*'
     service: pickleball-admin
 
   # --- Customer app ------------------------------------------------------
-  # Serves both the customer booking flow and, at /admin, the real console.
+  # apps/web — customer booking only. The admin console no longer lives here.
   - url: 'demo.bookly-ph.com/*'
     service: default

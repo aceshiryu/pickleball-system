@@ -14,8 +14,15 @@ const workspaceRoot = join(import.meta.dirname, '..', '..');
 // pickleball_web_e2e database.
 const WEB_PORT = 3010;
 const API_PORT = 3011;
+// The admin console is a separate app now, so the browser suite runs a second
+// Next server for it. Admin-driving helpers in support/ui.ts navigate to this
+// origin (via ADMIN_BASE_URL) instead of a /admin route on the web app.
+const ADMIN_PORT = 3012;
 const baseURL = process.env['BASE_URL'] || `http://localhost:${WEB_PORT}`;
+const adminBaseURL = process.env['ADMIN_BASE_URL'] || `http://localhost:${ADMIN_PORT}`;
 const apiBaseUrl = `http://localhost:${API_PORT}/api`;
+// Expose to the test workers (they inherit the runner's environment).
+process.env['ADMIN_BASE_URL'] = adminBaseURL;
 
 // Own database, distinct from the api-e2e suite's, so `nx run-many -t e2e`
 // can run both suites in parallel without clashing. Note the separate env var:
@@ -90,7 +97,7 @@ export default defineConfig({
       env: {
         ...dbEnv,
         PORT: String(API_PORT),
-        CORS_ORIGINS: baseURL,
+        CORS_ORIGINS: `${baseURL},${adminBaseURL}`,
         // Must match the defaults in support/api.ts, which runs in the test
         // process and so doesn't inherit this env block.
         SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL || 'admin@pickleplay.co',
@@ -98,7 +105,7 @@ export default defineConfig({
       },
     },
     {
-      // Next.js web on WEB_PORT, pointed at the e2e API.
+      // Next.js web (customer app) on WEB_PORT, pointed at the e2e API.
       command: 'npx nx run web:dev',
       url: baseURL,
       reuseExistingServer: false,
@@ -108,6 +115,19 @@ export default defineConfig({
         PORT: String(WEB_PORT),
         NEXT_PUBLIC_API_BASE_URL: apiBaseUrl,
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: WEB_GOOGLE_CLIENT_ID,
+      },
+    },
+    {
+      // Next.js admin console on ADMIN_PORT, same e2e API. Admin uses email +
+      // password, so it needs no Google client id.
+      command: 'npx nx run admin:dev',
+      url: adminBaseURL,
+      reuseExistingServer: false,
+      timeout: 180_000,
+      cwd: workspaceRoot,
+      env: {
+        PORT: String(ADMIN_PORT),
+        NEXT_PUBLIC_API_BASE_URL: apiBaseUrl,
       },
     },
   ],

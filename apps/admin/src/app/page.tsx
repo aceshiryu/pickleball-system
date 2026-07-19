@@ -1,33 +1,20 @@
-import Link from 'next/link';
+'use client';
 
-export default function LandingPage() {
-  return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 bg-gradient-to-b from-white to-gray-50">
-      <div className="max-w-2xl text-center space-y-6">
-        <h1 className="text-5xl font-bold tracking-tight">
-          pickleball
-        </h1>
-        <p className="text-lg text-gray-600">
-          A full-stack starter built with Nx, NestJS, Next.js, TypeORM, and
-          PostgreSQL. Ready to ship.
-        </p>
-        <div className="flex justify-center gap-3 pt-4">
-          <Link
-            href="/login"
-            className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800"
-          >
-            Sign in
-          </Link>
-          <a
-            href="http://localhost:3001/api-docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="border border-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-100"
-          >
-            API docs
-          </a>
-        </div>
-      </div>
-    </main>
-  );
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useStore } from '@shared/lib/store';
+import AdminApp from '@/components/admin/AdminApp';
+
+// The console root. This whole app is the admin surface (served at the admin
+// hostname), so the gate lives here and sends unauthenticated visitors to
+// /login rather than the old in-web /admin/login.
+export default function AdminPage() {
+  const { loggedIn, role, restoring } = useStore();
+  const router = useRouter();
+  const ok = loggedIn && role === 'admin';
+  useEffect(() => {
+    if (!restoring && !ok) router.replace('/login');
+  }, [ok, restoring, router]);
+  if (restoring || !ok) return null;
+  return <AdminApp />;
 }

@@ -7,6 +7,10 @@ import { stubGoogleSignIn } from './google';
  * not shortcuts around it. (For shortcuts, see support/api.ts.)
  */
 
+// The admin console is a separate app (own origin/port). Admin helpers navigate
+// here with absolute URLs; the customer helpers keep using the default baseURL.
+const ADMIN_BASE = process.env['ADMIN_BASE_URL'] || 'http://localhost:3012';
+
 /**
  * Sign in to the admin console by typing the credentials.
  *
@@ -15,7 +19,7 @@ import { stubGoogleSignIn } from './google';
  * that depends on them would break the moment the console is production-ready.
  */
 export async function signInAsAdmin(page: Page): Promise<void> {
-  await page.goto('/admin/login');
+  await page.goto(`${ADMIN_BASE}/login`);
   await expect(page.getByText(/staff sign in/i)).toBeVisible();
 
   const email = page.locator('input').first();

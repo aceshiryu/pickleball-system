@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useStore } from '@/lib/store';
-import { CustomerLogin, ProfileSetup } from '@/components/Auth';
+import { useStore } from '@shared/lib/store';
+import { CustomerLogin, ProfileSetup } from '@shared/components/Auth';
 import TermsGate from '@/components/Terms';
 import CustomerApp from '@/components/customer/CustomerApp';
 

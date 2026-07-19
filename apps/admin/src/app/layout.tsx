@@ -1,10 +1,13 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Providers } from './providers';
+import { StoreProvider } from '@shared/lib/store';
+import { Toasts } from '@shared/components/ui';
+import { ConfirmProvider } from '@shared/components/Confirm';
+import BrandingStyle from '@shared/components/BrandingStyle';
 
 export const metadata: Metadata = {
-  title: 'pickleball',
-  description: 'Built with ace-stack',
+  title: 'AfterHours Admin',
+  description: 'Facility console — courts, bookings, approvals, and settings.',
 };
 
 export default function RootLayout({
@@ -14,8 +17,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white text-gray-900 antialiased">
-        <Providers>{children}</Providers>
+      <body>
+        <StoreProvider>
+          <BrandingStyle />
+          <ConfirmProvider>
+            {children}
+            <Toasts />
+          </ConfirmProvider>
+        </StoreProvider>
       </body>
     </html>
   );

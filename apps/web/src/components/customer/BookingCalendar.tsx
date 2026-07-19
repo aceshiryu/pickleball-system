@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useStore } from "@/lib/store";
-import type { SelItem } from "@/lib/store";
-import { peso } from "@/lib/pricing";
-import { C, FONT_DISPLAY, primaryBtn } from "@/lib/theme";
-import SlotCalendar, { useIsMobile } from "../SlotCalendar";
+import { useStore } from "@shared/lib/store";
+import type { SelItem } from "@shared/lib/store";
+import { peso } from "@shared/lib/pricing";
+import { C, FONT_DISPLAY, primaryBtn } from "@shared/lib/theme";
+import SlotCalendar, { useIsMobile } from "@shared/components/SlotCalendar";
 import { CartGroups, cartTotal, groupByCourt } from "./Cart";
 import Checkout from "./Checkout";
 

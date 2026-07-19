@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useStore } from "@/lib/store";
-import { Brand } from "./ui";
-import { C, FONT_DISPLAY } from "@/lib/theme";
+import { useStore } from "@shared/lib/store";
+import { Brand } from "@shared/components/ui";
+import { C, FONT_DISPLAY } from "@shared/lib/theme";
 
 export default function Landing() {
   const { branding } = useStore();

@@ -1,9 +1,9 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { StoreProvider } from '@/lib/store';
-import { Toasts } from '@/components/ui';
-import { ConfirmProvider } from '@/components/Confirm';
-import BrandingStyle from '@/components/BrandingStyle';
+import { StoreProvider } from '@shared/lib/store';
+import { Toasts } from '@shared/components/ui';
+import { ConfirmProvider } from '@shared/components/Confirm';
+import BrandingStyle from '@shared/components/BrandingStyle';
 
 export const metadata: Metadata = {
   title: 'AfterHours, Book pickleball courts online',

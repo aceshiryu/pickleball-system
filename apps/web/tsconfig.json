@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@shared/*": [
+        "../../libs/web-shared/src/*"
       ]
     },
     "types": [
@@ -32,7 +35,6 @@
       "node"
     ],
     "outDir": "dist",
-    "rootDir": "src",
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
     "noUnusedLocals": false
   },

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { C, FONT_DISPLAY, primaryBtn } from "@/lib/theme";
-import { Brand } from "./ui";
+import { C, FONT_DISPLAY, primaryBtn } from "@shared/lib/theme";
+import { Brand } from "@shared/components/ui";
 
 export const TERMS_TEXT: string[] = [
   "1. Reserved slots are held for 10 minutes pending payment. Unpaid holds are released automatically and the hours reopen for others.",

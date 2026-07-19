@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useStore } from "@/lib/store";
-import type { SelItem } from "@/lib/store";
-import { ApiError } from "@/lib/api-client";
-import type { Booking, Court } from "@/lib/types";
-import { hourRange, prettyDate } from "@/lib/dates";
-import { peso } from "@/lib/pricing";
-import { prepareReceipt } from "@/lib/image";
-import { Modal, iconBtn } from "../ui";
+import { useStore } from "@shared/lib/store";
+import type { SelItem } from "@shared/lib/store";
+import { ApiError } from "@shared/lib/api-client";
+import type { Booking, Court } from "@shared/lib/types";
+import { hourRange, prettyDate } from "@shared/lib/dates";
+import { peso } from "@shared/lib/pricing";
+import { prepareReceipt } from "@shared/lib/image";
+import { Modal, iconBtn } from "@shared/components/ui";
 import { groupByCourt } from "./Cart";
 import PaymentInstructions from "./PaymentInstructions";
-import { C, FONT_DISPLAY, primaryBtn } from "@/lib/theme";
+import { C, FONT_DISPLAY, primaryBtn } from "@shared/lib/theme";
 
 const ctc: React.CSSProperties = { width: "100%", padding: 10, border: `1px solid ${C.border}`, borderRadius: 10, fontFamily: FONT_DISPLAY, fontSize: 13.5, boxSizing: "border-box", color: C.slate, background: "#fff" };
 

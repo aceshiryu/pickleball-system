@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useStore } from "@/lib/store";
-import type { Booking } from "@/lib/types";
-import { peso } from "@/lib/pricing";
-import { prepareReceipt } from "@/lib/image";
-import { C, FONT_DISPLAY, primaryBtn } from "@/lib/theme";
+import { useStore } from "@shared/lib/store";
+import type { Booking } from "@shared/lib/types";
+import { peso } from "@shared/lib/pricing";
+import { prepareReceipt } from "@shared/lib/image";
+import { C, FONT_DISPLAY, primaryBtn } from "@shared/lib/theme";
 import PaymentInstructions from "./PaymentInstructions";
 
 // Lets a customer finish paying for a still-held booking straight from My

@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useStore } from "@/lib/store";
-import type { Booking, BookingStatus } from "@/lib/types";
-import { hourLabel, prettyDate } from "@/lib/dates";
-import { peso } from "@/lib/pricing";
-import { StatusPill } from "../ui";
-import BookingDetailModal from "../BookingDetailModal";
+import { useStore } from "@shared/lib/store";
+import type { Booking, BookingStatus } from "@shared/lib/types";
+import { hourLabel, prettyDate } from "@shared/lib/dates";
+import { peso } from "@shared/lib/pricing";
+import { StatusPill } from "@shared/components/ui";
+import BookingDetailModal from "@shared/components/BookingDetailModal";
 import HoldPayment from "./HoldPayment";
-import { C, FONT_DISPLAY, primaryBtn } from "@/lib/theme";
+import { C, FONT_DISPLAY, primaryBtn } from "@shared/lib/theme";
 
 function whenLabel(b: Booking): string {
   if (!b.slots.length) return `${b.hours} slots`;

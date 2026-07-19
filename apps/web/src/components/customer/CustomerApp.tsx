@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useStore } from "@/lib/store";
-import { Brand } from "../ui";
-import { C, FONT_DISPLAY, avatarBg, initials } from "@/lib/theme";
+import { useStore } from "@shared/lib/store";
+import { Brand } from "@shared/components/ui";
+import { C, FONT_DISPLAY, avatarBg, initials } from "@shared/lib/theme";
 import BookingCalendar from "./BookingCalendar";
 import MyBookings from "./MyBookings";
 

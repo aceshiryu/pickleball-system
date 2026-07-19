@@ -106,13 +106,41 @@ having length ≥1, so onboarding's "at least one method" check passed without a
   `BookingDetailModal` renders the image only while `hasProof`, then shows "Payment verified".
 - Still unmigrated: the brand logo. Drop its data-URL validator and size cap once it moves.
 
+## App structure — three apps, one shared library
+
+The customer site and the admin console are **separate Next.js apps**, deployed to separate
+services and hostnames (`demo.` = `apps/web`, `demo-admin.` = `apps/admin`). They share almost
+everything through **`libs/web-shared`**:
+
+- `libs/web-shared/src/lib/*` — the store (`store.tsx`, a single unified context serving both
+  customer and admin roles), theme, types, dates, pricing, analytics, image, fonts, color, env,
+  api-client, errors, google, overrides, cart helpers.
+- `libs/web-shared/src/components/*` — the cross-used UI: `Auth` (CustomerLogin / ProfileSetup /
+  AdminLogin), `SlotCalendar`, `ui`, `BrandMark`, `Confirm`, `MonthPicker`, `ProofImage`,
+  `BookingDetailModal`, `BrandingStyle`.
+
+Both apps reach it via the **`@shared/*`** tsconfig path alias → `libs/web-shared/src/*`. This
+works because each app's tsconfig has that path AND drops `rootDir` (so files outside the app's
+`src` typecheck); Next compiles the shared source since it's not in `node_modules`. Inside the
+shared lib, imports are **relative** (`../lib/theme`), never `@shared`, so the lib doesn't depend
+on app-level aliases. Each app's `tailwind.config.js` globs `libs/web-shared/src` too.
+
+- `apps/web` — customer only: `Landing`, `Terms`, `customer/*`. Routes `/` and `/login`.
+- `apps/admin` — the console: `components/admin/*`. The console is the **root** (`/`), staff sign
+  in at `/login` (email+password → `AdminLogin`, which pushes to `/`). No Google client id needed.
+- The store keeps both customer and admin logic in one file on purpose — it's shared, so there's
+  one source of truth; the unused half in each app is harmless.
+
+Adding a component used by both apps? It goes in `libs/web-shared/src/components`, imports its deps
+relatively, and both apps import it via `@shared/components/...`.
+
 ## Web conventions
 
 - Theming is runtime CSS custom properties (`--brand-primary`, `--font-display`, `--font-body`)
-  surfaced through `lib/theme.ts`, so colour and font changes don't touch call sites.
-- `SlotCalendar` is the shared week grid — admin stepper and customer page both consume it so
-  they can't drift. Its `mouseup` listener registers once, so it routes through a ref to avoid
-  a stale `commitDrag` closure.
+  surfaced through `@shared/lib/theme`, so colour and font changes don't touch call sites.
+- `SlotCalendar` (in `libs/web-shared`) is the shared week grid — the admin stepper and the
+  customer page both consume it so they can't drift. Its `mouseup` listener registers once, so it
+  routes through a ref to avoid a stale `commitDrag` closure.
 - Settings fields use draft state + explicit Save. Don't PATCH on every keystroke and refetch —
   that clobbers typing.
 
@@ -172,6 +200,14 @@ facility and leaves it provisioned for `02`–`04`. The DB is truncated before t
 seed every run (`reset-db.mjs`), so the suite starts production-shaped — the admin
 account and nothing else. Specs provision their own fixtures via `support/api.ts`;
 that's arrangement only, never the behaviour under test.
+
+Since the admin console split into `apps/admin`, the config runs **three** servers:
+API (`:3011`), customer web (`:3010`), and admin (`:3012`). Admin-driving helpers in
+`support/ui.ts` navigate to the admin origin via `ADMIN_BASE_URL` (absolute URLs);
+customer helpers keep using the default `baseURL`. `CORS_ORIGINS` lists both web
+origins. The two apps have separate `localStorage`, so an admin session and a
+customer session in one journey spec don't collide — which is correct, they're
+different apps.
 
 Google sign-in is stubbed on both sides: the API runs with `GOOGLE_AUTH_STUB=1`
 (GoogleVerifier throws at boot if that's ever set with `NODE_ENV=production`), and

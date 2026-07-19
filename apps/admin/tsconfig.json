@@ -19,12 +19,13 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["../../libs/web-shared/src/*"]
     },
     "types": ["jest", "node"],
     "outDir": "dist",
-    "rootDir": "src",
-    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
+    "noUnusedLocals": false
   },
   "include": [
     "src/**/*.ts",
