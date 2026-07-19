@@ -3,18 +3,32 @@
 /**
  * Google Identity Services (GIS) wrapper.
  *
- * Loads Google's script on demand and resolves to the ID token ("credential")
- * for the account the user picks. The token is opaque here — only the API
- * verifies it, so nothing in this file is trusted for identity.
+ * Loads Google's script on demand and renders Google's own Sign-In button,
+ * whose callback hands back the ID token ("credential") for the account the
+ * user picks. The token is opaque here — only the API verifies it, so nothing
+ * in this file is trusted for identity.
  *
- * Uses the One Tap / prompt flow rather than a rendered Google button so the
- * existing "Continue with Google" styling survives.
+ * Deliberately uses the RENDERED BUTTON, not One Tap `prompt()`. One Tap
+ * self-suppresses (exponential-backoff cooldown after use, and it needs
+ * third-party cookies), which made the button "work once then stop". The
+ * rendered button opens a popup on every click — no cooldown, no third-party
+ * cookie dependency — at the cost of Google's own button styling.
  */
 
 const SRC = "https://accounts.google.com/gsi/client";
 
 export const GOOGLE_CLIENT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+
+interface GsiButtonConfig {
+  type?: "standard" | "icon";
+  theme?: "outline" | "filled_blue" | "filled_black";
+  size?: "large" | "medium" | "small";
+  text?: "signin_with" | "signup_with" | "continue_with" | "signin";
+  shape?: "rectangular" | "pill" | "circle" | "square";
+  logo_alignment?: "left" | "center";
+  width?: number;
+}
 
 interface GoogleAccounts {
   accounts: {
@@ -25,15 +39,9 @@ interface GoogleAccounts {
         cancel_on_tap_outside?: boolean;
         use_fedcm_for_prompt?: boolean;
       }): void;
-      prompt(listener?: (n: PromptNotification) => void): void;
+      renderButton(parent: HTMLElement, config: GsiButtonConfig): void;
     };
   };
-}
-
-interface PromptNotification {
-  isNotDisplayed(): boolean;
-  isSkippedMoment(): boolean;
-  getNotDisplayedReason?(): string;
 }
 
 let loader: Promise<void> | null = null;
@@ -57,55 +65,66 @@ function loadScript(): Promise<void> {
 
 export class GoogleSignInError extends Error {}
 
+export interface RenderGoogleButtonOptions {
+  /** Called with the ID token once the user picks an account. */
+  onToken: (idToken: string) => void;
+  /** Called if the button can't be set up (unconfigured, script blocked). */
+  onError: (err: GoogleSignInError) => void;
+  /** Button width in px (Google caps at 400). Defaults to 320. */
+  width?: number;
+}
+
 /**
- * Prompt for a Google account and resolve with the ID token.
+ * Render Google's Sign-In button into `container`. Its callback fires on every
+ * click with a fresh ID token — no One Tap cooldown, no third-party cookies.
  *
- * Rejects rather than hanging when the user dismisses the chooser — the caller
- * needs to clear its busy state, and a silent no-op was the original bug in
- * this button.
+ * Setup failures (missing client id, blocked script) go to `onError` so the
+ * caller can show a message instead of an empty box. Account-chooser dismissal
+ * simply fires nothing — the user can click again — so there's no "cancelled"
+ * error to surface here.
  */
-export async function requestGoogleIdToken(): Promise<string> {
+export async function renderGoogleButton(
+  container: HTMLElement,
+  opts: RenderGoogleButtonOptions,
+): Promise<void> {
   if (!GOOGLE_CLIENT_ID) {
-    throw new GoogleSignInError(
-      "Google sign-in is not configured (NEXT_PUBLIC_GOOGLE_CLIENT_ID).",
+    opts.onError(
+      new GoogleSignInError(
+        "Google sign-in is not configured (NEXT_PUBLIC_GOOGLE_CLIENT_ID).",
+      ),
     );
+    return;
   }
-  await loadScript();
+  try {
+    await loadScript();
+  } catch (e) {
+    opts.onError(
+      new GoogleSignInError(
+        e instanceof Error ? e.message : "Could not reach Google sign-in.",
+      ),
+    );
+    return;
+  }
 
   const google = (window as unknown as { google?: GoogleAccounts }).google;
   if (!google?.accounts?.id) {
-    throw new GoogleSignInError("Google sign-in failed to initialise.");
+    opts.onError(new GoogleSignInError("Google sign-in failed to initialise."));
+    return;
   }
 
-  return new Promise<string>((resolve, reject) => {
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      cancel_on_tap_outside: true,
-      // FedCM lets One Tap run through the browser's own identity UI, so it no
-      // longer depends on third-party cookies — which Chrome now blocks by
-      // default. Without this the prompt silently fails to display.
-      use_fedcm_for_prompt: true,
-      callback: (res) => {
-        if (res.credential) resolve(res.credential);
-        else reject(new GoogleSignInError("Google sign-in was cancelled."));
-      },
-    });
-
-    google.accounts.id.prompt((n) => {
-      // Under FedCM the isNotDisplayed()/isSkippedMoment() inspectors are
-      // removed, so feature-detect before calling them (calling a missing one
-      // throws). When present (older browsers) a suppressed prompt still means
-      // the chooser couldn't open — surface it instead of a stuck button.
-      const suppressed =
-        (typeof n.isNotDisplayed === "function" && n.isNotDisplayed()) ||
-        (typeof n.isSkippedMoment === "function" && n.isSkippedMoment());
-      if (suppressed) {
-        reject(
-          new GoogleSignInError(
-            "Google sign-in didn't open. Try again — if it keeps failing, open the site in a private window, or check that pop-ups aren't blocked.",
-          ),
-        );
-      }
-    });
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: (res) => {
+      if (res.credential) opts.onToken(res.credential);
+    },
+  });
+  google.accounts.id.renderButton(container, {
+    type: "standard",
+    theme: "outline",
+    size: "large",
+    text: "continue_with",
+    shape: "pill",
+    logo_alignment: "center",
+    width: Math.min(opts.width ?? 320, 400),
   });
 }

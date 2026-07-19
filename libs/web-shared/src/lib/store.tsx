@@ -35,7 +35,6 @@ import {
   type PeakSchedule,
 } from './pricing';
 import { api, getToken, setToken } from './api-client';
-import { requestGoogleIdToken } from './google';
 
 export interface Toast {
   id: number;
@@ -134,7 +133,7 @@ interface StoreValue {
 
   // customer onboarding (simulated Google)
   needsProfile: boolean;
-  googleLogin: () => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
   completeProfile: (name: string, phone: string) => Promise<void>;
 
   termsAccepted: boolean;
@@ -410,10 +409,9 @@ function StoreInner({ children }: { children: React.ReactNode }) {
     invalidate(['bookings', 'availability', 'customers']);
 
   // --- auth actions ---
-  async function googleLogin() {
-    // The ID token is minted by Google in the browser and verified server-side;
-    // the client never asserts who it is.
-    const idToken = await requestGoogleIdToken();
+  async function googleLogin(idToken: string) {
+    // The ID token is minted by Google in the browser (via the rendered Sign-In
+    // button) and verified server-side; the client never asserts who it is.
     const r = await api.post<{
       accessToken: string;
       user: PublicUser;

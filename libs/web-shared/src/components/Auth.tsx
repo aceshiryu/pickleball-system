@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "../lib/store";
 import { friendlySignInError, friendlyGoogleSignInError } from "../lib/errors";
+import { renderGoogleButton } from "../lib/google";
 import { useIsLocal } from "../lib/env";
 import { Brand } from "./ui";
 import { C, FONT_DISPLAY } from "../lib/theme";
@@ -26,29 +27,42 @@ export function CustomerLogin() {
   const { googleLogin } = useStore();
   const [error, setError] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const btnRef = React.useRef<HTMLDivElement>(null);
 
-  async function signIn() {
-    setBusy(true);
-    setError("");
-    try {
-      await googleLogin();
-    } catch (e) {
-      // Without this the promise rejected silently and the button just did
-      // nothing at all when the API was unreachable. The Google chooser adds
-      // its own dismissal path, which lands here too.
-      setError(friendlyGoogleSignInError(e));
-      setBusy(false);
-    }
-  }
+  // Render Google's own Sign-In button once. Its callback fires on every click
+  // with a fresh ID token (no One Tap cooldown), which we exchange for a
+  // session. Runs once on mount — GIS renders into the ref'd container.
+  React.useEffect(() => {
+    const el = btnRef.current;
+    if (!el) return;
+    void renderGoogleButton(el, {
+      width: 348,
+      onError: (e) => setError(friendlyGoogleSignInError(e)),
+      onToken: async (idToken) => {
+        setBusy(true);
+        setError("");
+        try {
+          await googleLogin(idToken);
+        } catch (e) {
+          setError(friendlyGoogleSignInError(e));
+          setBusy(false);
+        }
+      },
+    });
+    // googleLogin is stable from the store; render the button a single time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Shell>
       <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 22, boxShadow: "0 20px 50px -24px rgba(2,20,10,.35)", padding: 26 }}>
         <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 21, textAlign: "center", margin: "0 0 4px" }}>Welcome back</h1>
         <p style={{ textAlign: "center", color: C.muted, fontSize: 13.5, margin: "0 0 22px" }}>Sign in to book courts and track your sessions.</p>
-        <button onClick={signIn} disabled={busy} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 13, border: `1px solid ${C.border}`, borderRadius: 13, background: "#fff", cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1, fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 14, color: C.slate }}>
-          <GoogleIcon /> {busy ? "Signing in…" : "Continue with Google"}
-        </button>
+        {/* Google renders its button here; the placeholder shows until it does. */}
+        <div style={{ display: "flex", justifyContent: "center", minHeight: 44, opacity: busy ? 0.6 : 1, pointerEvents: busy ? "none" : "auto" }}>
+          <div ref={btnRef} />
+        </div>
+        {busy && <div style={{ fontSize: 12.5, color: C.muted, marginTop: 10, textAlign: "center" }}>Signing in…</div>}
         {error && <div style={{ fontSize: 12.5, color: "#e11d48", marginTop: 10, textAlign: "center", lineHeight: 1.5 }}>{error}</div>}
       </div>
       <div style={{ textAlign: "center", marginTop: 16 }}>
