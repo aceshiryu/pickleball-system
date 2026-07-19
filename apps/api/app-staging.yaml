@@ -1,0 +1,19 @@
+runtime: nodejs22
+service: pickleball-api-staging
+instance_class: F2
+
+# App Engine entrypoint: webpack build emits main.js at the deploy root.
+entrypoint: node main.js
+
+env_variables:
+  NODE_ENV: 'production'
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 2
+  target_cpu_utilization: 0.65
+
+handlers:
+  - url: /.*
+    script: auto
+    secure: always

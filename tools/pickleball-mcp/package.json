@@ -1,0 +1,13 @@
+{
+  "name": "pickleball-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server exposing the pickleball booking API (courts / bookings / overrides / settings) as tools for Claude Code.",
+  "bin": {
+    "pickleball-mcp": "./server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

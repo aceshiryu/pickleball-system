@@ -1,0 +1,72 @@
+steps:
+  - name: 'node:${_NODE_VERSION}'
+    id: 'install'
+    entrypoint: 'npm'
+    args: ['ci']
+
+  - name: 'node:${_NODE_VERSION}'
+    id: 'build-web'
+    entrypoint: 'npm'
+    args: ['run', 'build:web']
+    env:
+      - 'NEXT_PUBLIC_API_BASE_URL=${_NEXT_PUBLIC_API_BASE_URL}'
+
+  # Next.js output:'standalone' → self-contained server under apps/web/.next/standalone.
+  # Copy the static assets + public/ that standalone omits, drop the env app.yaml,
+  # generate a deploy package.json with only the runtime deps the App Engine buildpack
+  # installs (next + react; @koachesph/shared + app code are bundled into .next), and
+  # write a .gcloudignore so gcloud uploads .next (without it gcloud falls back to
+  # .gitignore and drops .next/ + node_modules/).
+  - name: 'node:${_NODE_VERSION}'
+    id: 'prepare-deploy'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        STANDALONE=apps/web/.next/standalone
+        cp -r apps/web/.next/static "$$STANDALONE/apps/web/.next/static"
+        if [ -d apps/web/public ]; then cp -r apps/web/public "$$STANDALONE/apps/web/public"; fi
+        cp apps/web/app-dev.yaml "$$STANDALONE/app.yaml"
+        node -e "const w=require('./apps/web/package.json').dependencies; require('fs').writeFileSync('apps/web/.next/standalone/package.json', JSON.stringify({ name: 'pickleball-web-dev', private: true, dependencies: { next: w.next, react: w.react, 'react-dom': w['react-dom'] }, scripts: { start: 'node apps/web/server.js' } }, null, 2));"
+        printf 'node_modules/\n' > "$$STANDALONE/.gcloudignore"
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy-web'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cd apps/web/.next/standalone
+        gcloud app deploy app.yaml \
+          --project=${_GCP_PROJECT_ID} \
+          --version=${SHORT_SHA} \
+          --promote \
+          --quiet
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'prune-versions'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        VERSIONS=$(gcloud app versions list \
+          --service=pickleball-web-dev \
+          --project=${_GCP_PROJECT_ID} \
+          --sort-by=~version.createTime \
+          --format='value(version.id)' | tail -n +40)
+        if [ -n "$$VERSIONS" ]; then
+          gcloud app versions delete $$VERSIONS \
+            --service=pickleball-web-dev \
+            --project=${_GCP_PROJECT_ID} \
+            --quiet
+        fi
+
+substitutions:
+  _NODE_VERSION: '22'
+  _GCP_PROJECT_ID: 'pickleball'
+  _NEXT_PUBLIC_API_BASE_URL: 'https://replace-me-api.appspot.com/api'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: '1800s'

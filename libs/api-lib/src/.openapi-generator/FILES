@@ -1,0 +1,15 @@
+.gitignore
+.npmignore
+.openapi-generator-ignore
+api.ts
+base.ts
+common.ts
+configuration.ts
+docs/AuthApi.md
+docs/CreateTodoDto.md
+docs/LoginDto.md
+docs/RegisterDto.md
+docs/TodosApi.md
+docs/UpdateTodoDto.md
+git_push.sh
+index.ts

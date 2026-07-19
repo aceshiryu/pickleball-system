@@ -1,0 +1,129 @@
+steps:
+  - name: 'node:${_NODE_VERSION}'
+    id: 'install'
+    entrypoint: 'npm'
+    args: ['ci']
+
+  - name: 'node:${_NODE_VERSION}'
+    id: 'build-api'
+    entrypoint: 'npm'
+    args: ['run', 'build:api']
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'prepare-deploy'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cp apps/api/app.yaml apps/api/dist/app.yaml
+        cp package.json apps/api/dist/package.json
+        cp package-lock.json apps/api/dist/package-lock.json
+
+  - name: 'node:${_NODE_VERSION}'
+    id: 'create-env'
+    entrypoint: 'npm'
+    args: ['run', 'create-env:api']
+    # DB credentials + JWT secret are pulled from Secret Manager (see
+    # availableSecrets at the bottom). create-env:api runs `printenv > dist/.env`,
+    # so both env and secretEnv values land in the deployed .env file.
+    secretEnv:
+      - 'DB_HOST'
+      - 'DB_PORT'
+      - 'DB_USERNAME'
+      - 'DB_PASSWORD'
+      - 'JWT_SECRET'
+    env:
+      - 'NODE_ENV=${_NODE_ENV}'
+      - 'PORT=${_PORT}'
+      - 'DB_NAME=${_DB_NAME}'
+      - 'DB_SCHEMA=${_DB_SCHEMA}'
+      - 'DB_SYNCHRONIZE=${_DB_SYNCHRONIZE}'
+      - 'DB_LOGGING=${_DB_LOGGING}'
+      - 'DB_SSL=${_DB_SSL}'
+      - 'JWT_EXPIRES_IN=${_JWT_EXPIRES_IN}'
+      - 'BCRYPT_ROUNDS=${_BCRYPT_ROUNDS}'
+      - 'CORS_ORIGINS=${_CORS_ORIGINS}'
+      - 'THROTTLE_TTL=${_THROTTLE_TTL}'
+      - 'THROTTLE_LIMIT=${_THROTTLE_LIMIT}'
+
+  - name: 'node:${_NODE_VERSION}'
+    id: 'install-prod-deps'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cd apps/api/dist
+        npm install --omit=dev
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy-api'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cd apps/api/dist
+        gcloud app deploy app.yaml \
+          --project=${_GCP_PROJECT_ID} \
+          --version=${SHORT_SHA} \
+          --promote \
+          --quiet
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'prune-versions'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        VERSIONS=$(gcloud app versions list \
+          --service=pickleball-api \
+          --project=${_GCP_PROJECT_ID} \
+          --sort-by=~version.createTime \
+          --format='value(version.id)' | tail -n +40)
+        if [ -n "$$VERSIONS" ]; then
+          gcloud app versions delete $$VERSIONS \
+            --service=pickleball-api \
+            --project=${_GCP_PROJECT_ID} \
+            --quiet
+        fi
+
+# NOTE: DB_HOST/DB_PORT/DB_USERNAME/DB_PASSWORD and JWT_SECRET are NOT here —
+# they live in Secret Manager (availableSecrets below). Only non-sensitive config
+# stays as substitutions. Values mirror apps/api/.env.example.
+#
+# DB_NAME is deliberately NOT a secret: several projects share one Supabase
+# project, where the database is always called `postgres`. It identifies nothing
+# on its own — the isolation comes from _DB_SCHEMA, which must differ per
+# project. Create the schema once before the first deploy:
+#   CREATE SCHEMA IF NOT EXISTS pickleball;
+substitutions:
+  _NODE_VERSION: '22'
+  _GCP_PROJECT_ID: 'pickleball'
+  _NODE_ENV: 'production'
+  _PORT: '8080'
+  _DB_NAME: 'postgres'
+  _DB_SCHEMA: 'pickleball'
+  _DB_SYNCHRONIZE: 'false'
+  _DB_LOGGING: 'false'
+  _DB_SSL: 'true'
+  _JWT_EXPIRES_IN: '7d'
+  _BCRYPT_ROUNDS: '10'
+  _CORS_ORIGINS: 'https://replace-me.com'
+  _THROTTLE_TTL: '60'
+  _THROTTLE_LIMIT: '100'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/${_GCP_PROJECT_ID}/secrets/pickleball-db-host/versions/latest
+      env: 'DB_HOST'
+    - versionName: projects/${_GCP_PROJECT_ID}/secrets/pickleball-db-port/versions/latest
+      env: 'DB_PORT'
+    - versionName: projects/${_GCP_PROJECT_ID}/secrets/pickleball-db-username/versions/latest
+      env: 'DB_USERNAME'
+    - versionName: projects/${_GCP_PROJECT_ID}/secrets/pickleball-db-password/versions/latest
+      env: 'DB_PASSWORD'
+    - versionName: projects/${_GCP_PROJECT_ID}/secrets/pickleball-jwt-secret/versions/latest
+      env: 'JWT_SECRET'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: '1800s'
