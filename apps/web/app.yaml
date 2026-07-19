@@ -1,5 +1,8 @@
 runtime: nodejs22
-service: pickleball-web
+# The customer web app takes the `default` slot. App Engine requires a service
+# by that exact name and refuses to deploy any other service until it exists —
+# so this one must be deployed first in a fresh project.
+service: default
 instance_class: F2
 
 # App Engine entrypoint: Next standalone emits apps/web/server.js.

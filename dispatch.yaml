@@ -1,14 +1,14 @@
 # App Engine hostname routing for the demo deployment.
 #
-# Deployed on its own, separately from the services:
-#   gcloud app deploy dispatch.yaml --project=<project>
+# Deployed on its own, after the services exist:
+#   gcloud app deploy dispatch.yaml --project=pickleball-system-502915
 #
 # Each custom domain must already be mapped to the App Engine app
 # (`gcloud app domain-mappings create demo-api.bookly-ph.com`) and its DNS
 # records created, or these rules match nothing.
 #
 # Rules are evaluated top to bottom and the FIRST match wins. Anything that
-# matches no rule falls through to the `default` service (a bootstrap stub, not the web app).
+# matches no rule falls through to `default`, which is the customer web app.
 
 dispatch:
   # --- API ---------------------------------------------------------------
@@ -16,14 +16,18 @@ dispatch:
   - url: 'demo-api.bookly-ph.com/*'
     service: pickleball-api
 
-  # --- Admin console -----------------------------------------------------
-  # Served by the same deployable as the customer app: the console is a route
-  # *inside* the Next.js app (apps/web/src/app/admin), not a separate service.
-  # The hostnames are kept apart in middleware.ts, which sends this host to
-  # /admin and refuses to serve /admin on the customer host.
+  # --- Admin ---------------------------------------------------------------
+  # apps/admin. NOTE: this is currently the project generator's todo scaffold,
+  # deployed to prove the pipeline end to end. Its only screen calls the /todos
+  # endpoints, which no longer exist in the API, so the page loads and then
+  # reports a load failure.
+  #
+  # The REAL admin console is not here — it is a route inside the customer web
+  # app, reachable at demo-customer.bookly-ph.com/admin.
   - url: 'demo-admin.bookly-ph.com/*'
-    service: pickleball-web
+    service: pickleball-admin
 
   # --- Customer app ------------------------------------------------------
+  # Serves both the customer booking flow and, at /admin, the real console.
   - url: 'demo-customer.bookly-ph.com/*'
-    service: pickleball-web
+    service: default

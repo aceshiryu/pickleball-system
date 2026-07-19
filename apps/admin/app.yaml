@@ -2,8 +2,10 @@ runtime: nodejs22
 service: pickleball-admin
 instance_class: F2
 
-# App Engine entrypoint: Next standalone emits apps/web/server.js.
-entrypoint: node apps/web/server.js
+# App Engine entrypoint: Next standalone emits apps/admin/server.js for this app.
+# It previously read apps/web/server.js — copy-pasted from the web descriptor,
+# which would have crash-looped with "Cannot find module '/workspace/apps/web/server.js'".
+entrypoint: node apps/admin/server.js
 
 env_variables:
   NODE_ENV: 'production'

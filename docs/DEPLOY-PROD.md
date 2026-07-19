@@ -8,7 +8,7 @@ with credentials in Secret Manager.
 | GCP project | `pickleball-system-502915` |
 | Region | `asia-southeast1` (permanent) |
 | GitHub | `aceshiryu/pickleball-system` |
-| Services | `pickleball-api`, `pickleball-web`, plus a `default` bootstrap stub |
+| Services | `default` (web), `pickleball-api`, `pickleball-admin` |
 | Build configs | `cloudbuild/production/` |
 | Deploy action | publish a GitHub Release (`v*` tag) |
 
@@ -16,16 +16,24 @@ PROD carries **no name suffix** — never `-prod` or `-production`.
 
 ## Hostnames
 
-| Hostname | Service | Serves |
-|---|---|---|
-| `demo-customer.bookly-ph.com` | `pickleball-web` | customer app; `/admin` is refused |
-| `demo-admin.bookly-ph.com` | `pickleball-web` | admin console; `/` redirects to `/admin` |
-| `demo-api.bookly-ph.com` | `pickleball-api` | NestJS under `/api`, Swagger at `/api-docs` |
-| anything else | `default` | bootstrap stub |
+| Hostname | Service | Descriptor | Serves |
+|---|---|---|---|
+| `demo-customer.bookly-ph.com` | `default` | `apps/web/app.yaml` | customer app **and** the real admin console at `/admin` |
+| `demo-admin.bookly-ph.com` | `pickleball-admin` | `apps/admin/app.yaml` | `apps/admin` — see the warning below |
+| `demo-api.bookly-ph.com` | `pickleball-api` | `apps/api/app.yaml` | NestJS under `/api`, Swagger at `/api-docs` |
+| anything else | `default` | | customer app |
 
-The customer app and the admin console are **one deployable** — the console is a route inside
-the Next.js app, not a separate service. `dispatch.yaml` can only map a hostname to a service,
-so the split between the two browser hostnames is enforced in `apps/web/src/middleware.ts`.
+> **`demo-admin` does not serve the admin console.** `apps/admin` is the project generator's
+> todo scaffold, deployed to prove the pipeline end to end. Its only screen calls the `/todos`
+> endpoints, which were removed from the API — the page loads and then reports a load failure.
+>
+> The real console is a route inside the customer web app, reachable at
+> **`demo-customer.bookly-ph.com/admin`**. Moving it onto its own hostname means either
+> deploying the web bundle a second time under the admin service, or porting the console into
+> `apps/admin` behind a shared component lib.
+
+`default` must be the **first** service deployed in a fresh project — App Engine refuses every
+other service until it exists. Since `apps/web/app.yaml` claims that slot, web goes first.
 
 ## Running it
 
@@ -58,7 +66,7 @@ sandboxed shells.
 
 `_NODE_ENV`, `_PORT`, `_DB_NAME`, `_DB_SYNCHRONIZE`, `_DB_LOGGING`, `_DB_SSL`,
 `_JWT_EXPIRES_IN`, `_BCRYPT_ROUNDS`, `_CORS_ORIGINS`, `_THROTTLE_TTL`, `_THROTTLE_LIMIT`,
-and web's `_NEXT_PUBLIC_*`
+and web/admin's `_NEXT_PUBLIC_API_BASE_URL`
 
 ### Two deliberate deviations from the standard split
 
@@ -67,11 +75,9 @@ where the database is always called `postgres` — the value is identical everyw
 nothing on its own. Keeping it in Secret Manager bought no secrecy and added a secret to
 provision per environment.
 
-**`NEXT_PUBLIC_ADMIN_HOST` / `NEXT_PUBLIC_CUSTOMER_HOST` are set at build time**, in the web
-build step rather than in `app.yaml`. `middleware.ts` runs in the Edge runtime, where
-`NEXT_PUBLIC_*` values are inlined during the build; supplying them as App Engine
-`env_variables` would leave them undefined at request time and the hostname split would
-silently stop working.
+**`NEXT_PUBLIC_API_BASE_URL` comes from the trigger substitution, not `app.yaml`.** Next inlines
+`NEXT_PUBLIC_*` at build time, so an App Engine `env_variables` entry would arrive too late to
+affect the bundle.
 
 ## Database preflight — do this before the first deploy
 
@@ -103,13 +109,22 @@ Until the mappings and DNS exist, the `dispatch.yaml` rules match nothing.
 
 ## Deploying
 
-Deploys are **release-driven**. Cutting a release publishes the `v*` tag both triggers fire on:
+Deploys are **release-driven**. Cutting a release publishes the `v*` tag all three triggers
+fire on:
 
 ```bash
 gh release create v1.0.0 --generate-notes
 ```
 
-Then, once both services exist, publish the routing:
+On a **fresh** project the three builds race, and api/admin will fail if they reach App Engine
+before web has created `default`. If that happens, deploy web once by hand and re-release:
+
+```bash
+gcloud builds submit --config=cloudbuild/production/cloudbuild-web.yaml \
+  --substitutions="_GCP_PROJECT_ID=pickleball-system-502915,_NEXT_PUBLIC_API_BASE_URL=https://demo-api.bookly-ph.com/api"
+```
+
+Then, once all three services exist, publish the routing:
 
 ```bash
 gcloud app deploy dispatch.yaml --project=pickleball-system-502915

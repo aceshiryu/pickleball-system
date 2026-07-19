@@ -25,8 +25,10 @@ export APPSPOT_SA="${PROJECT_ID}@appspot.gserviceaccount.com"
 export TAG_PATTERN='^v.*$'                 # the v* tag a GitHub Release publishes
 
 # PROD = no suffix anywhere (never -prod / -production).
+# The customer web app occupies the `default` slot; api and admin are named.
 API_SVC=pickleball-api
-WEB_SVC=pickleball-web
+WEB_SVC=default
+ADMIN_SVC=pickleball-admin
 CB_DIR=production
 
 # Secret-name prefix. Deliberately the short project name, not $PROJECT_ID —
@@ -50,33 +52,18 @@ gcloud services enable \
   secretmanager.googleapis.com iam.googleapis.com cloudresourcemanager.googleapis.com
 
 # ----------------------------------------------- Phase B — App Engine bootstrap
-say "Phase B — App Engine app + default service"
+say "Phase B — App Engine app"
 gcloud app describe >/dev/null 2>&1 || gcloud app create --region="$REGION"
 
-# App Engine's first deploy in a fresh project MUST be the service literally
-# named `default`, and no other service can deploy until it exists. Neither of
-# our real services is called that, so deploy a throwaway stub to claim the
-# slot. It also becomes the fallback for any hostname dispatch.yaml misses.
-if ! gcloud app services describe default >/dev/null 2>&1; then
-  TMP="$(mktemp -d)"
-  cat > "$TMP/app.yaml" <<'YAML'
-runtime: nodejs22
-service: default
-handlers:
-  - url: /.*
-    script: auto
-    secure: always
-YAML
-  cat > "$TMP/index.js" <<'JS'
-require('http').createServer((_, r) => r.end('default ok')).listen(process.env.PORT || 8080);
-JS
-  cat > "$TMP/package.json" <<'JSON'
-{ "name": "ae-default", "main": "index.js", "scripts": { "start": "node index.js" } }
-JSON
-  ( cd "$TMP" && gcloud app deploy app.yaml --quiet )
-else
-  echo "  default service already exists — skipping bootstrap."
-fi
+# No stub bootstrap needed: apps/web/app.yaml declares `service: default`, so
+# the customer app itself claims the slot. It MUST therefore be the first
+# service deployed in a fresh project — App Engine refuses to deploy any other
+# service until `default` exists. The release cuts all three triggers at once,
+# so if the very first release fails on api or admin with a "default service
+# does not exist" error, deploy web once by hand and re-release:
+#
+#   gcloud builds submit --config=cloudbuild/production/cloudbuild-web.yaml \
+#     --substitutions="_GCP_PROJECT_ID=${PROJECT_ID},_NEXT_PUBLIC_API_BASE_URL=https://${API_HOST}/api"
 
 # --------------------------------------------------------------- Phase C — IAM
 # Cloud Build runs as the App Engine default SA. Project-level, so this covers
@@ -154,12 +141,13 @@ API_SUBS="${API_SUBS},_JWT_EXPIRES_IN=7d,_BCRYPT_ROUNDS=10"
 API_SUBS="${API_SUBS},_CORS_ORIGINS=https://${WEB_HOST}\\,https://${ADMIN_HOST}"
 API_SUBS="${API_SUBS},_THROTTLE_TTL=60,_THROTTLE_LIMIT=100"
 
-# NEXT_PUBLIC_* are inlined at BUILD time — middleware.ts runs in the Edge
-# runtime and reads them from the bundle, not from App Engine env_variables.
+# NEXT_PUBLIC_* is inlined at BUILD time by Next, so it comes from the trigger
+# substitution rather than App Engine env_variables.
 WEB_SUBS="_GCP_PROJECT_ID=${PROJECT_ID}"
 WEB_SUBS="${WEB_SUBS},_NEXT_PUBLIC_API_BASE_URL=https://${API_HOST}/api"
-WEB_SUBS="${WEB_SUBS},_NEXT_PUBLIC_ADMIN_HOST=${ADMIN_HOST}"
-WEB_SUBS="${WEB_SUBS},_NEXT_PUBLIC_CUSTOMER_HOST=${WEB_HOST}"
+
+ADMIN_SUBS="_GCP_PROJECT_ID=${PROJECT_ID}"
+ADMIN_SUBS="${ADMIN_SUBS},_NEXT_PUBLIC_API_BASE_URL=https://${API_HOST}/api"
 
 # No --included-files on tag triggers: on a tag push Cloud Build diffs against
 # the parent commit, so a release touching only apps/api would silently skip web.
@@ -177,8 +165,11 @@ create_trigger () {  # $1=name  $2=build-config  $3=substitutions
   echo "  created trigger $1"
 }
 
-create_trigger "$API_SVC" "cloudbuild/${CB_DIR}/cloudbuild-api.yaml" "$API_SUBS"
-create_trigger "$WEB_SVC" "cloudbuild/${CB_DIR}/cloudbuild-web.yaml" "$WEB_SUBS"
+create_trigger "$API_SVC"        "cloudbuild/${CB_DIR}/cloudbuild-api.yaml"   "$API_SUBS"
+# Trigger name, not service name: `default` is a poor trigger label and would
+# collide conceptually with other projects in the same Cloud Build region.
+create_trigger "pickleball-web"  "cloudbuild/${CB_DIR}/cloudbuild-web.yaml"   "$WEB_SUBS"
+create_trigger "$ADMIN_SVC"      "cloudbuild/${CB_DIR}/cloudbuild-admin.yaml" "$ADMIN_SUBS"
 
 # ------------------------------------------------------------------- next steps
 cat <<EOF
@@ -198,12 +189,19 @@ Then map the custom domains (each prints DNS records to add at your registrar):
   gcloud app domain-mappings create ${ADMIN_HOST} --project=${PROJECT_ID}
   gcloud app domain-mappings create ${API_HOST}   --project=${PROJECT_ID}
 
-Deploy by cutting a GitHub Release — that publishes the v* tag both triggers
-fire on:
+Deploy by cutting a GitHub Release — that publishes the v* tag all three
+triggers fire on:
 
   gh release create v1.0.0 --generate-notes
 
-Finally, once both services exist, publish the hostname routing:
+On a FRESH project the three builds race, and api/admin will fail if they reach
+App Engine before web has created the \`default\` service. If that happens,
+deploy web once by hand and re-release:
+
+  gcloud builds submit --config=cloudbuild/${CB_DIR}/cloudbuild-web.yaml \\
+    --substitutions="_GCP_PROJECT_ID=${PROJECT_ID},_NEXT_PUBLIC_API_BASE_URL=https://${API_HOST}/api"
+
+Finally, once all three services exist, publish the hostname routing:
 
   gcloud app deploy dispatch.yaml --project=${PROJECT_ID}
 

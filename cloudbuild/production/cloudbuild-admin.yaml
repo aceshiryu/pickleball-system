@@ -65,7 +65,7 @@ steps:
 substitutions:
   _NODE_VERSION: '22'
   _GCP_PROJECT_ID: 'pickleball-system-502915'
-  _NEXT_PUBLIC_API_BASE_URL: 'https://replace-me-api.appspot.com/api'
+  _NEXT_PUBLIC_API_BASE_URL: 'https://demo-api.bookly-ph.com/api'
 
 options:
   logging: CLOUD_LOGGING_ONLY

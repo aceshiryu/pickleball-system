@@ -8,14 +8,8 @@ steps:
     id: 'build-web'
     entrypoint: 'npm'
     args: ['run', 'build:web']
-    # Set at BUILD time, not in app.yaml: middleware.ts runs in the Edge runtime,
-    # where NEXT_PUBLIC_* values are inlined during the build. Supplying them as
-    # App Engine env_variables would leave them undefined at request time and the
-    # hostname split would silently stop working.
     env:
       - 'NEXT_PUBLIC_API_BASE_URL=${_NEXT_PUBLIC_API_BASE_URL}'
-      - 'NEXT_PUBLIC_ADMIN_HOST=${_NEXT_PUBLIC_ADMIN_HOST}'
-      - 'NEXT_PUBLIC_CUSTOMER_HOST=${_NEXT_PUBLIC_CUSTOMER_HOST}'
 
   # Next.js output:'standalone' → self-contained server under apps/web/.next/standalone.
   # Copy the static assets + public/ that standalone omits, drop the env app.yaml,
@@ -57,13 +51,13 @@ steps:
       - '-c'
       - |
         VERSIONS=$(gcloud app versions list \
-          --service=pickleball-web \
+          --service=default \
           --project=${_GCP_PROJECT_ID} \
           --sort-by=~version.createTime \
           --format='value(version.id)' | tail -n +40)
         if [ -n "$$VERSIONS" ]; then
           gcloud app versions delete $$VERSIONS \
-            --service=pickleball-web \
+            --service=default \
             --project=${_GCP_PROJECT_ID} \
             --quiet
         fi
@@ -72,10 +66,6 @@ substitutions:
   _NODE_VERSION: '22'
   _GCP_PROJECT_ID: 'pickleball-system-502915'
   _NEXT_PUBLIC_API_BASE_URL: 'https://demo-api.bookly-ph.com/api'
-  # Which hostname serves which surface. Must match dispatch.yaml. Leaving
-  # either blank disables that half of the split in middleware.ts.
-  _NEXT_PUBLIC_ADMIN_HOST: 'demo-admin.bookly-ph.com'
-  _NEXT_PUBLIC_CUSTOMER_HOST: 'demo-customer.bookly-ph.com'
 
 options:
   logging: CLOUD_LOGGING_ONLY
