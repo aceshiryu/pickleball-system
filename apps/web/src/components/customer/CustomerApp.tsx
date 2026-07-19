@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useStore } from "@shared/lib/store";
 import { Brand } from "@shared/components/ui";
-import { C, FONT_DISPLAY, avatarBg, initials } from "@shared/lib/theme";
+import { C, FONT_DISPLAY, avatarBg, initials, primaryBtn } from "@shared/lib/theme";
 import BookingCalendar from "./BookingCalendar";
 import MyBookings from "./MyBookings";
 
 export default function CustomerApp() {
-  const { currentCustomer, logout } = useStore();
+  const { currentCustomer, logout, loggedIn } = useStore();
   const [screen, setScreen] = useState<"book" | "mine">("book");
   const [menu, setMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -52,6 +53,14 @@ export default function CustomerApp() {
     </div>
   );
 
+  // Guests get a Sign-in link instead of the account menu; booking never
+  // requires it.
+  const accountArea = loggedIn ? (
+    avatarMenu
+  ) : (
+    <Link href="/login" style={{ ...primaryBtn, padding: "8px 16px", fontSize: 13, textDecoration: "none", boxShadow: "none" }}>Sign in</Link>
+  );
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header style={{ position: "sticky", top: 0, zIndex: 40, background: "rgba(255,255,255,.9)", backdropFilter: "blur(10px)", borderBottom: `1px solid ${C.border}` }}>
@@ -60,7 +69,7 @@ export default function CustomerApp() {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Brand size={32} subtitle="" />
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-                {avatarMenu}
+                {accountArea}
               </div>
             </div>
             <nav style={{ display: "flex", gap: 4, background: "#eef2f0", padding: 4, borderRadius: 12 }}>
@@ -76,7 +85,7 @@ export default function CustomerApp() {
               <button onClick={() => setScreen("mine")} style={navBtn(screen === "mine")}>My bookings</button>
             </nav>
             <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-              {avatarMenu}
+              {accountArea}
             </div>
           </div>
         )}

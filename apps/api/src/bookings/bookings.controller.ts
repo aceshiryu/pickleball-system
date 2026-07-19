@@ -21,6 +21,10 @@ import {
   AdminCreateBookingDto,
   ApproveDto,
   CreateBookingsDto,
+  GuestHoldDto,
+  GuestReleaseHoldsDto,
+  GuestSubmitPaymentDto,
+  GuestTokensDto,
   HoldDto,
   ReasonDto,
   ReleaseHoldsDto,
@@ -48,8 +52,9 @@ export class BookingsController {
     return this.bookingsService.findMine(user.sub);
   }
 
+  // Public: slot states only (open / taken / held), no PII — guests need it to
+  // see the calendar before signing in.
   @Get('availability')
-  @UseGuards(ApiAuthGuard)
   availability() {
     return this.bookingsService.availability();
   }
@@ -59,6 +64,51 @@ export class BookingsController {
   @UseGuards(ApiAuthGuard)
   hold(@CurrentUser() user: CurrentUserPayload, @Body() dto: HoldDto) {
     return this.bookingsService.hold(user.sub, dto.items, dto.contact);
+  }
+
+  // --- guest (no account) ---
+  // Public counterparts of the customer flow. Ownership is proved by the
+  // guestToken returned from hold, not a JWT.
+  @Post('guest/hold')
+  @HttpCode(HttpStatus.CREATED)
+  guestHold(@Body() dto: GuestHoldDto) {
+    return this.bookingsService.holdGuest(dto.items, dto.contact);
+  }
+
+  @Post('guest/submit-payment')
+  @HttpCode(HttpStatus.OK)
+  guestSubmitPayment(@Body() dto: GuestSubmitPaymentDto) {
+    return this.bookingsService.submitPaymentGuest(
+      dto.guestToken,
+      dto.ids,
+      dto.proofFileName,
+      dto.proofImage,
+    );
+  }
+
+  @Post('guest/release-holds')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  guestReleaseHolds(@Body() dto: GuestReleaseHoldsDto) {
+    return this.bookingsService.releaseHoldsGuest(dto.guestToken, dto.ids);
+  }
+
+  // Guest "my bookings": the browser sends the tokens it's holding.
+  @Post('guest/lookup')
+  @HttpCode(HttpStatus.OK)
+  guestLookup(@Body() dto: GuestTokensDto) {
+    return this.bookingsService.findByGuestTokens(dto.tokens);
+  }
+
+  // Attach guest bookings to the signed-in account (called right after login).
+  @Post('claim')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ApiAuthGuard)
+  async claim(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: GuestTokensDto,
+  ) {
+    const claimed = await this.bookingsService.claim(user.sub, dto.tokens);
+    return { claimed };
   }
 
   // --- front desk ---

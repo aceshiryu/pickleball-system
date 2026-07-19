@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomBytes } from 'crypto';
 import { In, Repository } from 'typeorm';
 import { Booking, BookingStatus } from './booking.entity';
 import { BookingSlot } from './booking-slot.entity';
@@ -52,6 +53,12 @@ function toISODate(v: string | Date): string {
 
 function genRef(i: number): string {
   return `PKL-${Date.now().toString(36).toUpperCase()}${i}`;
+}
+
+// Secret, unguessable ownership token for a guest booking session. The browser
+// that booked keeps it; every guest-only endpoint requires it.
+function genGuestToken(): string {
+  return `g_${randomBytes(24).toString('base64url')}`;
 }
 
 @Injectable()
@@ -231,6 +238,7 @@ export class BookingsService {
       paymentMethod?: string | null;
       paymentReference?: string | null;
       seenByAdmin?: boolean;
+      guestToken?: string | null;
     },
   ): Promise<string[]> {
     const byCourt = this.groupByCourt(items);
@@ -266,6 +274,7 @@ export class BookingsService {
         paymentMethod: opts.paymentMethod ?? null,
         paymentReference: opts.paymentReference ?? null,
         seenByAdmin: opts.seenByAdmin ?? false,
+        guestToken: opts.guestToken ?? null,
         slots: priced,
       });
       const saved = await this.bookingRepo.save(entity);
@@ -291,6 +300,98 @@ export class BookingsService {
       contact: await this.contactFor(customerId, contact),
     });
     return this.reload(ids);
+  }
+
+  // --- Guest booking (no account) ---------------------------------------
+  // Same flow as hold(), but customerId is null and ownership is proved by a
+  // secret guestToken instead of the JWT. The token is returned to the browser,
+  // which stores it and presents it to pay/release/view/claim.
+
+  async holdGuest(
+    items: SlotItemDto[],
+    contact: ContactDto,
+  ): Promise<{ bookings: BookingView[]; guestToken: string }> {
+    await this.releaseExpiredHolds();
+    await this.assertWithinOpeningHours(items);
+    await this.assertSlotsFree(items);
+    const holdExpiresAt = new Date(Date.now() + 10 * 60_000);
+    const guestToken = genGuestToken();
+    const ids = await this.buildBookings(null, items, {
+      status: 'hold',
+      proofFileName: null,
+      holdExpiresAt,
+      contact: await this.contactFor(null, contact),
+      guestToken,
+    });
+    return { bookings: await this.reload(ids), guestToken };
+  }
+
+  async submitPaymentGuest(
+    guestToken: string,
+    ids: string[],
+    proofFileName: string,
+    proofImage?: string,
+  ): Promise<BookingView[]> {
+    await this.assertOwnsAll(ids, guestToken);
+    const stored = proofImage !== undefined ? await this.storeProof(proofImage) : null;
+    await this.bookingRepo
+      .createQueryBuilder()
+      .update(Booking)
+      .set({
+        status: 'pending_approval',
+        proofFileName,
+        ...(stored ?? {}),
+        holdExpiresAt: null,
+        seenByAdmin: false,
+      })
+      .where('id IN (:...ids)', { ids })
+      .andWhere('guest_token = :guestToken', { guestToken })
+      .execute();
+    return this.reload(ids);
+  }
+
+  async releaseHoldsGuest(guestToken: string, ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await this.bookingRepo.softDelete({
+      id: In(ids),
+      guestToken,
+      status: 'hold',
+    });
+  }
+
+  // The guest's own bookings, by the tokens their browser is holding.
+  async findByGuestTokens(tokens: string[]): Promise<BookingView[]> {
+    await this.releaseExpiredHolds();
+    if (tokens.length === 0) return [];
+    const rows = await this.bookingRepo.find({
+      where: { guestToken: In(tokens) },
+      order: { createdAt: 'DESC' },
+    });
+    return rows.map(mapBooking);
+  }
+
+  // Attach guest bookings to a now-signed-in account: set customer_id and clear
+  // the token so it can't be replayed. Only rows whose token the caller supplied
+  // are touched — possession of the token is the authorisation.
+  async claim(customerId: string, tokens: string[]): Promise<number> {
+    if (tokens.length === 0) return 0;
+    const res = await this.bookingRepo
+      .createQueryBuilder()
+      .update(Booking)
+      .set({ customerId, guestToken: null })
+      .where('guest_token IN (:...tokens)', { tokens })
+      .execute();
+    return res.affected ?? 0;
+  }
+
+  // Guard: every id must exist and carry this guest token, or 403.
+  private async assertOwnsAll(ids: string[], guestToken: string): Promise<void> {
+    const count = await this.bookingRepo.count({
+      where: { id: In(ids), guestToken },
+    });
+    if (count !== ids.length) {
+      throw new ForbiddenException('Not your booking');
+    }
   }
 
   // Front-desk booking. The money is taken at the counter, so this skips

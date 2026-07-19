@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useStore } from "@shared/lib/store";
 import type { Booking, BookingStatus } from "@shared/lib/types";
 import { hourLabel, prettyDate } from "@shared/lib/dates";
@@ -38,13 +39,16 @@ const FILTERS: [Filter, string][] = [
 ];
 
 export default function MyBookings({ onBook }: { onBook: () => void }) {
-  const { bookings, courts, currentCustomer, refreshHolds } = useStore();
+  const { bookings, courts, currentCustomer, refreshHolds, loggedIn } = useStore();
   const [filter, setFilter] = useState<Filter>("all");
   const [detail, setDetail] = useState<Booking | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const firedRef = useRef<Set<string>>(new Set());
 
-  const mine = bookings.filter((b) => b.customerId === currentCustomer.id).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  // A signed-in customer's list is filtered to their own rows; a guest's list
+  // already comes back scoped to their tokens, so every row is theirs.
+  const mine = (loggedIn ? bookings.filter((b) => b.customerId === currentCustomer.id) : bookings)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   const shown = mine.filter((b) => (filter === "all" ? true : b.status === filter));
 
   const holds = mine.filter((b) => b.status === "hold");
@@ -79,6 +83,16 @@ export default function MyBookings({ onBook }: { onBook: () => void }) {
     <main style={{ flex: 1, width: "100%", maxWidth: 780, margin: "0 auto", padding: "22px 16px 80px" }}>
       <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 26, letterSpacing: "-.02em", margin: "0 0 4px" }}>My bookings</h1>
       <p style={{ margin: "0 0 16px", color: C.muted, fontSize: 14 }}>Track approvals, payments, and upcoming sessions.</p>
+
+      {/* Guests: their bookings live on this device only until they sign in. */}
+      {!loggedIn && mine.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 14px", borderRadius: 14, background: C.offBg, border: `1px solid ${C.offBorder}`, marginBottom: 16 }}>
+          <div style={{ flex: 1, minWidth: 180, fontSize: 13, color: C.offInkD, lineHeight: 1.5 }}>
+            You booked as a guest — these are saved on this device only. Sign in with Google to keep them on your account and see them anywhere.
+          </div>
+          <Link href="/login" style={{ ...primaryBtn, padding: "9px 16px", fontSize: 13, textDecoration: "none", boxShadow: "none", flexShrink: 0 }}>Sign in to save</Link>
+        </div>
+      )}
 
       {mine.length > 0 && (
         <div style={{ display: "flex", gap: 6, background: "#eef2f0", padding: 4, borderRadius: 12, marginBottom: 16, width: "fit-content", maxWidth: "100%", overflowX: "auto" }} className="thin-scroll">

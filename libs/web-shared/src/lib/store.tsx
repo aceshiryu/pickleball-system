@@ -223,6 +223,42 @@ interface StoreValue {
 
 const StoreContext = createContext<StoreValue | null>(null);
 
+// --- guest booking storage --------------------------------------------------
+// A guest has no account; their bookings are owned by secret tokens the server
+// returns from a guest hold. The browser keeps {token, ids} per hold session in
+// localStorage so it can pay/release/view those bookings, and claim them onto
+// an account at sign-in.
+const GUEST_KEY = 'pkl_guest';
+interface GuestEntry { token: string; ids: string[] }
+
+function readGuest(): GuestEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(GUEST_KEY);
+    return raw ? (JSON.parse(raw) as GuestEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+function writeGuest(list: GuestEntry[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(GUEST_KEY, JSON.stringify(list));
+}
+function addGuestEntry(token: string, ids: string[]) {
+  writeGuest([...readGuest(), { token, ids }]);
+}
+function guestTokens(): string[] {
+  return readGuest().map((e) => e.token);
+}
+// The token that owns a set of booking ids (they all come from one hold).
+function guestTokenForIds(ids: string[]): string | undefined {
+  return readGuest().find((e) => ids.some((id) => e.ids.includes(id)))?.token;
+}
+function clearGuest() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(GUEST_KEY);
+}
+
 let toastSeq = 1;
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
@@ -305,6 +341,11 @@ function StoreInner({ children }: { children: React.ReactNode }) {
 
   // --- queries ---
   const authed = !restoring && loggedIn;
+  // A visitor on the customer side with no account: they can still browse the
+  // calendar and book. Courts/overrides/availability are public, so those load
+  // for guests too.
+  const isGuest = !restoring && !loggedIn;
+  const publicData = !restoring;
 
   const brandingQ = useQuery({
     queryKey: ['settings'],
@@ -313,12 +354,12 @@ function StoreInner({ children }: { children: React.ReactNode }) {
   const courtsQ = useQuery({
     queryKey: ['courts'],
     queryFn: () => api.get<Court[]>('/courts'),
-    enabled: authed,
+    enabled: publicData,
   });
   const overridesQ = useQuery({
     queryKey: ['overrides'],
     queryFn: () => api.get<Override[]>('/overrides'),
-    enabled: authed,
+    enabled: publicData,
   });
   const availabilityQ = useQuery({
     queryKey: ['availability'],
@@ -326,18 +367,22 @@ function StoreInner({ children }: { children: React.ReactNode }) {
       api.get<
         { courtId: string; date: string; hour: number; state?: SlotState }[]
       >('/bookings/availability'),
-    enabled: authed,
+    enabled: publicData,
     // Poll so slots held by others appear as taken, and lapsed 10-minute holds
     // reopen, without the customer refreshing the page.
     refetchInterval: 15_000,
   });
   const bookingsQ = useQuery({
     queryKey: ['bookings', role],
-    queryFn: () =>
-      isAdminSide
-        ? api.get<Booking[]>('/bookings')
-        : api.get<Booking[]>('/bookings/mine'),
-    enabled: authed,
+    queryFn: () => {
+      if (isAdminSide) return api.get<Booking[]>('/bookings');
+      if (isCustomer) return api.get<Booking[]>('/bookings/mine');
+      // Guest: look their bookings up by the tokens this browser holds.
+      return api.post<Booking[]>('/bookings/guest/lookup', {
+        tokens: guestTokens(),
+      });
+    },
+    enabled: authed || (isGuest && guestTokens().length > 0),
     // Poll so the list and each booking's status stay current on their own —
     // new holds appear, expired holds flip to cancelled, and admin approvals /
     // rejections show up without a manual refresh.
@@ -422,6 +467,27 @@ function StoreInner({ children }: { children: React.ReactNode }) {
     setNeedsProfile(r.needsProfile);
     setTermsAccepted(false);
     setViewAs(null);
+    // Attach any bookings made as a guest on this browser to the new account,
+    // then forget the guest tokens — they've done their job.
+    const tokens = guestTokens();
+    if (tokens.length) {
+      try {
+        const { claimed } = await api.post<{ claimed: number }>(
+          '/bookings/claim',
+          { tokens },
+        );
+        clearGuest();
+        if (claimed > 0) {
+          pushToast({
+            kind: 'success',
+            title: 'Bookings saved to your account',
+            body: `${claimed} booking${claimed > 1 ? 's' : ''} is now in My bookings.`,
+          });
+        }
+      } catch {
+        // Non-fatal: they're still signed in; the guest tokens stay for a retry.
+      }
+    }
     queryClient.invalidateQueries();
   }
   async function completeProfile(name: string, phone: string) {
@@ -466,10 +532,22 @@ function StoreInner({ children }: { children: React.ReactNode }) {
       hour: i.hour,
     }));
     try {
-      const created = await api.post<Booking[]>('/bookings/hold', {
-        items: clean,
-        contact,
-      });
+      let created: Booking[];
+      if (loggedIn) {
+        created = await api.post<Booking[]>('/bookings/hold', {
+          items: clean,
+          contact,
+        });
+      } else {
+        // Guest: contact is required (no profile to fall back to). Keep the
+        // returned token so we can pay/release/view and later claim these.
+        const res = await api.post<{ bookings: Booking[]; guestToken: string }>(
+          '/bookings/guest/hold',
+          { items: clean, contact },
+        );
+        created = res.bookings;
+        addGuestEntry(res.guestToken, created.map((b) => b.id));
+      }
       refreshBookings();
       return created;
     } catch (e) {
@@ -484,7 +562,17 @@ function StoreInner({ children }: { children: React.ReactNode }) {
     proofFileName: string,
     proofImage?: string,
   ) {
-    await api.post('/bookings/submit-payment', { ids, proofFileName, proofImage });
+    if (loggedIn) {
+      await api.post('/bookings/submit-payment', { ids, proofFileName, proofImage });
+    } else {
+      const guestToken = guestTokenForIds(ids);
+      await api.post('/bookings/guest/submit-payment', {
+        guestToken,
+        ids,
+        proofFileName,
+        proofImage,
+      });
+    }
     pushToast({
       kind: 'info',
       title: ids.length > 1 ? `${ids.length} bookings submitted` : 'Payment submitted',
@@ -494,7 +582,12 @@ function StoreInner({ children }: { children: React.ReactNode }) {
   }
   async function releaseHolds(ids: string[]) {
     if (ids.length === 0) return;
-    await api.post('/bookings/release-holds', { ids });
+    if (loggedIn) {
+      await api.post('/bookings/release-holds', { ids });
+    } else {
+      const guestToken = guestTokenForIds(ids);
+      await api.post('/bookings/guest/release-holds', { guestToken, ids });
+    }
     refreshBookings();
   }
   // Re-fetch /bookings/mine + availability. The bookings fetch makes the API

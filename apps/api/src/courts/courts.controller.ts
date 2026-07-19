@@ -20,9 +20,9 @@ import { UpdateCourtDto } from './dto/update-court.dto';
 export class CourtsController {
   constructor(private readonly courtsService: CourtsService) {}
 
+  // Public: the customer booking calendar (guests included) needs the court
+  // list — names and rates, no sensitive data. Mutations below stay admin-only.
   @Get()
-  @UseGuards(ApiAuthGuard)
-  @ApiBearerAuth()
   findAll() {
     return this.courtsService.findAll();
   }

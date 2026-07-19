@@ -177,3 +177,68 @@ export class ReasonDto {
   @MinLength(1)
   reason?: string;
 }
+
+// --- Guest booking (no account) ---------------------------------------------
+// A guest has no JWT, so contact is required (there's no profile to fall back
+// to), and ownership on later calls is proved by the returned guestToken.
+
+export class GuestHoldDto {
+  @ApiProperty({ type: [SlotItemDto] })
+  @IsArray()
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => SlotItemDto)
+  items: SlotItemDto[];
+
+  @ApiProperty({ type: ContactDto })
+  @ValidateNested()
+  @Type(() => ContactDto)
+  contact: ContactDto;
+}
+
+export class GuestSubmitPaymentDto {
+  @ApiProperty({ example: 'g_AbC123…' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  guestToken: string;
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  ids: string[];
+
+  @ApiProperty({ example: 'gcash_receipt.jpg' })
+  @IsString()
+  proofFileName: string;
+
+  @ApiPropertyOptional({ example: 'data:image/jpeg;base64,/9j/4AAQ...' })
+  @IsOptional()
+  @IsString()
+  @Matches(PROOF_PATTERN, { message: 'Receipt must be a PNG, JPEG, WEBP or PDF.' })
+  @MaxLength(PROOF_MAX_CHARS, { message: 'That receipt is too large. Use a smaller image.' })
+  proofImage?: string;
+}
+
+export class GuestReleaseHoldsDto {
+  @ApiProperty({ example: 'g_AbC123…' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  guestToken: string;
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  ids: string[];
+}
+
+// Guest "my bookings" / claim: a browser presents the tokens it's holding.
+export class GuestTokensDto {
+  @ApiProperty({ type: [String], example: ['g_AbC123…'] })
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(128, { each: true })
+  tokens: string[];
+}

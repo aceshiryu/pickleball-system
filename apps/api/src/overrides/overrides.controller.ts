@@ -19,10 +19,9 @@ import { OverridesService } from './overrides.service';
 export class OverridesController {
   constructor(private readonly overridesService: OverridesService) {}
 
-  // Any authenticated user (customers must see blackouts).
+  // Public: guests booking on the calendar must see blackouts too. Mutations
+  // below stay staff-only.
   @Get()
-  @UseGuards(ApiAuthGuard)
-  @ApiBearerAuth()
   findAll() {
     return this.overridesService.findAll();
   }

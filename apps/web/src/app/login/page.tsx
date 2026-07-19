@@ -1,25 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '@shared/lib/store';
-import { CustomerLogin, ProfileSetup } from '@shared/components/Auth';
-import TermsGate from '@/components/Terms';
-import CustomerApp from '@/components/customer/CustomerApp';
+import { CustomerLogin } from '@shared/components/Auth';
 
+// Explicit customer sign-in. Booking doesn't require it (guests book at /book);
+// this is for saving/seeing your bookings. Once signed in, hand off to /book,
+// which runs the profile/terms gates and shows the app.
 export default function LoginPage() {
-  const {
-    loggedIn,
-    role,
-    needsProfile,
-    termsAccepted,
-    acceptTerms,
-    logout,
-    restoring,
-  } = useStore();
-  if (restoring) return null;
-  if (!(loggedIn && role === 'customer')) return <CustomerLogin />;
-  if (needsProfile) return <ProfileSetup />;
-  if (!termsAccepted)
-    return <TermsGate onAccept={acceptTerms} onCancel={logout} />;
-  return <CustomerApp />;
+  const { loggedIn, role, restoring } = useStore();
+  const router = useRouter();
+  const signedIn = loggedIn && role === 'customer';
+  useEffect(() => {
+    if (!restoring && signedIn) router.replace('/book');
+  }, [restoring, signedIn, router]);
+  if (restoring || signedIn) return null;
+  return <CustomerLogin />;
 }

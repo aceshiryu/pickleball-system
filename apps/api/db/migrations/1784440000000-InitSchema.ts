@@ -140,6 +140,7 @@ export class InitSchema1784440000000 implements MigrationInterface {
         "contact_name" character varying NOT NULL DEFAULT '',
         "contact_phone" character varying NOT NULL DEFAULT '',
         "contact_email" character varying,
+        "guest_token" character varying,
         "hours" integer NOT NULL,
         "total" integer NOT NULL,
         "status" character varying NOT NULL,
@@ -159,6 +160,10 @@ export class InitSchema1784440000000 implements MigrationInterface {
     `);
     await queryRunner.query(
       `CREATE INDEX "IDX_bookings_deleted_at" ON "bookings" ("deleted_at")`,
+    );
+    // Guest bookings are looked up / claimed by this token.
+    await queryRunner.query(
+      `CREATE INDEX "IDX_bookings_guest_token" ON "bookings" ("guest_token")`,
     );
 
     // --- booking_slots (one row per reserved court-hour) -------------------

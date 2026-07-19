@@ -51,6 +51,13 @@ export class Booking {
   @Column({ name: 'contact_email', type: 'varchar', nullable: true })
   contactEmail: string | null;
 
+  // Secret token for a GUEST booking (customerId null). The browser that made
+  // the booking keeps it; possession proves ownership for the guest-only
+  // endpoints (view / pay / release / claim). Null once claimed by an account,
+  // or for bookings made while signed in.
+  @Column({ name: 'guest_token', type: 'varchar', nullable: true })
+  guestToken: string | null;
+
   @Column({ name: 'court_id' })
   courtId: string;
 
