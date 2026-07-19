@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useStore } from "@shared/lib/store";
 import type { SelItem } from "@shared/lib/store";
 import { ApiError } from "@shared/lib/api-client";
@@ -32,7 +33,7 @@ export default function Checkout({
   total: number;
   onDone: () => void;
 }) {
-  const { holdBookings, submitPayment, releaseHolds, paymentMethods, isPeakAt, rateAt, currentCustomer } = useStore();
+  const { holdBookings, submitPayment, releaseHolds, paymentMethods, isPeakAt, rateAt, currentCustomer, loggedIn } = useStore();
   const [step, setStep] = useState<Step>("review");
   const [held, setHeld] = useState<Booking[]>([]);
   const [t1, setT1] = useState(false);
@@ -366,6 +367,15 @@ export default function Checkout({
           <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
             We&apos;ve received your proof for <strong style={{ color: C.ink2 }}>{lastRef}</strong>. An admin will verify it shortly, you&apos;ll see the status update in <strong style={{ color: C.green }}>My bookings</strong>.
           </div>
+          {/* Guests: offer to keep this booking on an account. */}
+          {!loggedIn && (
+            <div style={{ marginTop: 18, padding: "14px 14px 16px", borderRadius: 14, background: C.offBg, border: `1px solid ${C.offBorder}` }}>
+              <div style={{ fontSize: 13, color: C.offInkD, lineHeight: 1.5, marginBottom: 10 }}>
+                You booked as a guest — this is saved on this device only. Sign in with Google to keep it on your account and see it anywhere.
+              </div>
+              <Link href="/login" style={{ ...primaryBtn, display: "inline-flex", padding: "10px 18px", fontSize: 13.5, textDecoration: "none", boxShadow: "none" }}>Sign in to save my booking</Link>
+            </div>
+          )}
         </div>
       )}
     </Modal>

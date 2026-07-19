@@ -244,16 +244,6 @@ function writeGuest(list: GuestEntry[]) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(GUEST_KEY, JSON.stringify(list));
 }
-function addGuestEntry(token: string, ids: string[]) {
-  writeGuest([...readGuest(), { token, ids }]);
-}
-function guestTokens(): string[] {
-  return readGuest().map((e) => e.token);
-}
-// The token that owns a set of booking ids (they all come from one hold).
-function guestTokenForIds(ids: string[]): string | undefined {
-  return readGuest().find((e) => ids.some((id) => e.ids.includes(id)))?.token;
-}
 function clearGuest() {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(GUEST_KEY);
@@ -289,9 +279,15 @@ function StoreInner({ children }: { children: React.ReactNode }) {
     access: AccessLevel;
     name: string;
   } | null>(null);
+  // Guest booking sessions ({token, ids}), mirrored from localStorage into
+  // state so adding one re-renders — otherwise the bookings query never sees a
+  // new token and "My bookings" stays empty. Loaded on mount to avoid a
+  // hydration mismatch (the server has no localStorage).
+  const [guestEntries, setGuestEntries] = useState<GuestEntry[]>([]);
 
   // Restore a session from a stored token on first mount.
   useEffect(() => {
+    setGuestEntries(readGuest());
     const t = getToken();
     if (!t) {
       setRestoring(false);
@@ -346,6 +342,21 @@ function StoreInner({ children }: { children: React.ReactNode }) {
   // for guests too.
   const isGuest = !restoring && !loggedIn;
   const publicData = !restoring;
+  const guestTokenList = guestEntries.map((e) => e.token);
+  // State-aware guest helpers: keep localStorage and React state in lockstep so
+  // a new booking both persists and re-renders.
+  function addGuestSession(token: string, ids: string[]) {
+    const next = [...guestEntries, { token, ids }];
+    writeGuest(next);
+    setGuestEntries(next);
+  }
+  function clearGuestSessions() {
+    clearGuest();
+    setGuestEntries([]);
+  }
+  function tokenForIds(ids: string[]): string | undefined {
+    return guestEntries.find((e) => ids.some((id) => e.ids.includes(id)))?.token;
+  }
 
   const brandingQ = useQuery({
     queryKey: ['settings'],
@@ -373,16 +384,17 @@ function StoreInner({ children }: { children: React.ReactNode }) {
     refetchInterval: 15_000,
   });
   const bookingsQ = useQuery({
-    queryKey: ['bookings', role],
+    // The guest key includes the tokens so a new booking refetches with them.
+    queryKey: ['bookings', role, isGuest ? guestTokenList.join(',') : ''],
     queryFn: () => {
       if (isAdminSide) return api.get<Booking[]>('/bookings');
       if (isCustomer) return api.get<Booking[]>('/bookings/mine');
       // Guest: look their bookings up by the tokens this browser holds.
       return api.post<Booking[]>('/bookings/guest/lookup', {
-        tokens: guestTokens(),
+        tokens: guestTokenList,
       });
     },
-    enabled: authed || (isGuest && guestTokens().length > 0),
+    enabled: authed || (isGuest && guestTokenList.length > 0),
     // Poll so the list and each booking's status stay current on their own —
     // new holds appear, expired holds flip to cancelled, and admin approvals /
     // rejections show up without a manual refresh.
@@ -469,14 +481,14 @@ function StoreInner({ children }: { children: React.ReactNode }) {
     setViewAs(null);
     // Attach any bookings made as a guest on this browser to the new account,
     // then forget the guest tokens — they've done their job.
-    const tokens = guestTokens();
+    const tokens = guestTokenList;
     if (tokens.length) {
       try {
         const { claimed } = await api.post<{ claimed: number }>(
           '/bookings/claim',
           { tokens },
         );
-        clearGuest();
+        clearGuestSessions();
         if (claimed > 0) {
           pushToast({
             kind: 'success',
@@ -546,7 +558,7 @@ function StoreInner({ children }: { children: React.ReactNode }) {
           { items: clean, contact },
         );
         created = res.bookings;
-        addGuestEntry(res.guestToken, created.map((b) => b.id));
+        addGuestSession(res.guestToken, created.map((b) => b.id));
       }
       refreshBookings();
       return created;
@@ -565,7 +577,7 @@ function StoreInner({ children }: { children: React.ReactNode }) {
     if (loggedIn) {
       await api.post('/bookings/submit-payment', { ids, proofFileName, proofImage });
     } else {
-      const guestToken = guestTokenForIds(ids);
+      const guestToken = tokenForIds(ids);
       await api.post('/bookings/guest/submit-payment', {
         guestToken,
         ids,
@@ -585,7 +597,7 @@ function StoreInner({ children }: { children: React.ReactNode }) {
     if (loggedIn) {
       await api.post('/bookings/release-holds', { ids });
     } else {
-      const guestToken = guestTokenForIds(ids);
+      const guestToken = tokenForIds(ids);
       await api.post('/bookings/guest/release-holds', { guestToken, ids });
     }
     refreshBookings();
