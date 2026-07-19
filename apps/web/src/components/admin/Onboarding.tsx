@@ -2,6 +2,7 @@
 
 import React, { useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
+import type { Court } from "@/lib/types";
 import { hourLabel } from "@/lib/dates";
 import { peso } from "@/lib/pricing";
 import BrandMark from "../BrandMark";
@@ -31,7 +32,7 @@ const REQUIRED_COUNT = STEPS.filter((s) => !s.optional && !s.review).length;
 
 export default function Onboarding() {
   const {
-    branding, updateBranding, courts, addCourt, paymentMethods, addPaymentMethod,
+    branding, updateBranding, courts, addCourt, updateCourt, paymentMethods, addPaymentMethod,
     staff, addStaff, bookableHours, completeOnboarding,
   } = useStore();
 
@@ -103,7 +104,7 @@ export default function Onboarding() {
           {/* Step body — scrollable */}
           <div style={{ flex: 1, minWidth: 0, padding: "18px 22px", overflowY: "auto" }} className="thin-scroll">
             {cur.id === "brand" && <BrandStep branding={branding} updateBranding={updateBranding} />}
-            {cur.id === "hours" && <HoursStep branding={branding} updateBranding={updateBranding} courts={courts} addCourt={addCourt} />}
+            {cur.id === "hours" && <HoursStep branding={branding} updateBranding={updateBranding} courts={courts} addCourt={addCourt} updateCourt={updateCourt} />}
             {cur.id === "peak" && <PeakStep branding={branding} updateBranding={updateBranding} hours={bookableHours} />}
             {cur.id === "payments" && <PaymentsStep methods={paymentMethods} addPaymentMethod={addPaymentMethod} />}
             {cur.id === "staff" && <StaffStep staff={staff} addStaff={addStaff} />}
@@ -213,7 +214,57 @@ function BrandStep({ branding, updateBranding }: any) {
   );
 }
 
-function HoursStep({ branding, updateBranding, courts, addCourt }: any) {
+// A court in the onboarding list: read-only until "Edit", then the same four
+// fields the add form uses, saving through updateCourt (which PATCHes /courts).
+function CourtRow({ court, updateCourt }: { court: Court; updateCourt: (c: Court) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(court.name);
+  const [surface, setSurface] = useState(court.surface);
+  const [peak, setPeak] = useState(court.peakRate);
+  const [off, setOff] = useState(court.offPeakRate);
+
+  function start() {
+    setName(court.name); setSurface(court.surface);
+    setPeak(court.peakRate); setOff(court.offPeakRate);
+    setEditing(true);
+  }
+  function save() {
+    if (!name.trim()) return;
+    updateCourt({ ...court, name: name.trim(), surface: surface.trim() || "Court", peakRate: peak, offPeakRate: off });
+    setEditing(false);
+  }
+
+  if (!editing) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", border: `1px solid ${C.border2}`, borderRadius: 11 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>{court.name}</div>
+          <div style={{ fontSize: 12, color: C.muted }}>{court.surface} · Peak {peso(court.peakRate)} · Off-peak {peso(court.offPeakRate)}</div>
+        </div>
+        <button onClick={start} style={{ fontSize: 12.5, fontWeight: 600, color: C.green, background: "none", border: "none", cursor: "pointer" }}>Edit</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ border: `1px solid ${C.green}`, borderRadius: 11, padding: 12 }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+        <div style={{ flex: 1 }}><L>Name</L><input value={name} onChange={(e) => setName(e.target.value)} style={fld} /></div>
+        <div style={{ flex: 1 }}><L>Surface</L><input value={surface} onChange={(e) => setSurface(e.target.value)} style={fld} /></div>
+      </div>
+      <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+        <div style={{ flex: 1 }}><L>Peak / hr</L><input type="number" value={peak} onChange={(e) => setPeak(Number(e.target.value))} style={fld} /></div>
+        <div style={{ flex: 1 }}><L>Off-peak / hr</L><input type="number" value={off} onChange={(e) => setOff(Number(e.target.value))} style={fld} /></div>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={save} disabled={!name.trim()} style={{ ...primaryBtn, flex: 1, padding: 10, fontSize: 13, boxShadow: "none", background: name.trim() ? primaryBtn.background : "#cbd5cf", cursor: name.trim() ? "pointer" : "not-allowed" }}>Save</button>
+        <button onClick={() => setEditing(false)} style={{ flex: 1, padding: 10, border: `1px solid ${C.border}`, borderRadius: 11, background: "#fff", color: "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function HoursStep({ branding, updateBranding, courts, addCourt, updateCourt }: any) {
   const [n, setN] = useState("");
   const [surface, setSurface] = useState("Cushioned acrylic");
   const [peak, setPeak] = useState(700);
@@ -248,14 +299,8 @@ function HoursStep({ branding, updateBranding, courts, addCourt }: any) {
 
       {courts.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-          {courts.map((c: any) => (
-            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", border: `1px solid ${C.border2}`, borderRadius: 11 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</div>
-                <div style={{ fontSize: 12, color: C.muted }}>{c.surface} · Peak {peso(c.peakRate)} · Off-peak {peso(c.offPeakRate)}</div>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.offInkD, background: C.offBg, padding: "2px 8px", borderRadius: 999 }}>Added</span>
-            </div>
+          {courts.map((c: Court) => (
+            <CourtRow key={c.id} court={c} updateCourt={updateCourt} />
           ))}
         </div>
       )}
