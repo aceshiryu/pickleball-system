@@ -9,10 +9,13 @@ export default function BrandingStyle() {
   const { branding } = useStore();
   useEffect(() => {
     const root = document.documentElement;
-    const p = branding.primary || "#16a34a";
-    // Secondary is always computed from primary — never read from storage — so
-    // the palette stays in tune even for rows saved before this was derived.
-    const s = deriveSecondary(p);
+    const p = branding.primary || "#6B2B2B";
+    // Prefer the facility's chosen secondary; fall back to a dark tone derived
+    // from primary when it's unset (older rows saved before secondary was a
+    // brand field). Secondary is always rendered behind white text, so a
+    // facility picking an unreadably light value is the one risk — see the
+    // AA note on settings.entity.ts's secondary column.
+    const s = branding.secondary || deriveSecondary(p);
     const pd = darken(p, 0.82);
     root.style.setProperty("--brand-primary", p);
     root.style.setProperty("--brand-primary-d", pd);

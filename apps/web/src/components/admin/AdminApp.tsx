@@ -6,6 +6,7 @@ import { LayoutDashboard, ClipboardCheck, ClipboardList, CalendarDays, Banknote,
 import { useStore } from "@/lib/store";
 import { useIsLocal } from "@/lib/env";
 import { C, FONT_DISPLAY, avatarBg, initials } from "@/lib/theme";
+import BrandMark from "../BrandMark";
 import Dashboard from "./Dashboard";
 import Approvals from "./Approvals";
 import Bookings from "./Bookings";
@@ -103,9 +104,8 @@ export default function AdminApp() {
             {branding.logoUrl ? (
               <img src={branding.logoUrl} alt="" style={{ width: 36, height: 36, borderRadius: 11, objectFit: "cover", flexShrink: 0 }} />
             ) : (
-              <div style={{ position: "relative", width: 36, height: 36, borderRadius: 11, background: "linear-gradient(145deg,#22c55e,#15803d)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff" }} />
-                <div style={{ position: "absolute", right: 6, bottom: 6, width: 5, height: 5, borderRadius: "50%", background: "#bbf7d0" }} />
+              <div style={{ position: "relative", width: 36, height: 36, borderRadius: 11, background: C.greenGrad, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <BrandMark size={20} />
               </div>
             )}
             <div style={{ lineHeight: 1 }}>
@@ -149,7 +149,7 @@ export default function AdminApp() {
                 {branding.logoUrl ? (
                   <img src={branding.logoUrl} alt="" style={{ width: 30, height: 30, borderRadius: 9, objectFit: "cover", flexShrink: 0 }} />
                 ) : (
-                  <div style={{ width: 30, height: 30, borderRadius: 9, background: C.greenGrad, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#fff" }} /></div>
+                  <div style={{ width: 30, height: 30, borderRadius: 9, background: C.greenGrad, display: "flex", alignItems: "center", justifyContent: "center" }}><BrandMark size={16} /></div>
                 )}
                 <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 16 }}>{branding.appName} <span style={{ color: C.faint, fontWeight: 500 }}>Admin</span></div>
                 {isLocal && (

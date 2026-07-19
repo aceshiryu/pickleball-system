@@ -26,9 +26,9 @@ export class SettingsService {
       settings = await this.repo.save(
         this.repo.create({
           id: 1,
-          appName: 'PicklePlay',
-          primary: '#16a34a',
-          secondary: '#0d1b14',
+          appName: 'AfterHours',
+          primary: '#6B2B2B',
+          secondary: '#6E7275',
         }),
       );
     }

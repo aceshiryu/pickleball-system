@@ -6,7 +6,7 @@ import { ConfirmProvider } from '@/components/Confirm';
 import BrandingStyle from '@/components/BrandingStyle';
 
 export const metadata: Metadata = {
-  title: 'PicklePlay, Book pickleball courts online',
+  title: 'AfterHours, Book pickleball courts online',
   description:
     'Reserve courts, pay online, and manage your facility, the easiest way to play more pickleball.',
 };

@@ -81,9 +81,9 @@ export class InitSchema1784440000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "settings" (
         "id" integer NOT NULL DEFAULT 1,
-        "app_name" character varying NOT NULL DEFAULT 'PicklePlay',
-        "primary" character varying NOT NULL DEFAULT '#16a34a',
-        "secondary" character varying NOT NULL DEFAULT '#0d1b14',
+        "app_name" character varying NOT NULL DEFAULT 'AfterHours',
+        "primary" character varying NOT NULL DEFAULT '#6B2B2B',
+        "secondary" character varying NOT NULL DEFAULT '#6E7275',
         "logo_url" text,
         "font_family" character varying NOT NULL DEFAULT 'space-grotesk',
         "open_hour" integer NOT NULL DEFAULT 6,

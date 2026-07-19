@@ -4,6 +4,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { hourLabel } from "@/lib/dates";
 import { peso } from "@/lib/pricing";
+import BrandMark from "../BrandMark";
 import { prepareReceipt } from "@/lib/image";
 import { FONTS, fontByKey } from "@/lib/fonts";
 import { deriveSecondary, tint } from "@/lib/color";
@@ -166,12 +167,12 @@ function BrandStep({ branding, updateBranding }: any) {
       <H>Branding</H>
       <P>Your name, logo and colours. These appear on the customer app, the landing page and this console.</P>
       <L>Facility name</L>
-      <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => updateBranding({ appName: name.trim() || "PicklePlay" })} placeholder="e.g. CourtHub" style={fld} />
+      <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => updateBranding({ appName: name.trim() || "AfterHours" })} placeholder="e.g. CourtHub" style={fld} />
 
       <L style={{ marginTop: 14 }}>Logo</L>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 6 }}>
         <div style={{ width: 64, height: 64, borderRadius: 16, border: `1px solid ${C.border}`, background: branding.logoUrl ? "#fff" : C.greenGrad, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-          {branding.logoUrl ? <img src={branding.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#fff" }} />}
+          {branding.logoUrl ? <img src={branding.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <BrandMark size={22} />}
         </div>
         <div>
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void pickLogo(f); }} />
@@ -433,7 +434,7 @@ function ReviewStep({ branding, courts, methods, staff, dataDone, goTo }: any) {
       <Group n={0} title="Branding" ok={dataDone.brand} goTo={goTo}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 11, border: `1px solid ${C.border}`, background: branding.logoUrl ? "#fff" : C.greenGrad, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {branding.logoUrl ? <img src={branding.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff" }} />}
+            {branding.logoUrl ? <img src={branding.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <BrandMark size={14} />}
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600 }}>{branding.appName || "—"}</div>

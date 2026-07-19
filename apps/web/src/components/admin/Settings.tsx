@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Banknote } from "lucide-react";
 import { HOLD_MINUTES, useStore, DEFAULT_BRANDING } from "@/lib/store";
 import { FONTS } from "@/lib/fonts";
+import BrandMark from "../BrandMark";
 import { deriveSecondary, tint } from "@/lib/color";
 import { C, FONT_DISPLAY, primaryBtn } from "@/lib/theme";
 import { useConfirm } from "../Confirm";
@@ -106,7 +107,7 @@ export default function Settings({ isMobile }: { isMobile: boolean }) {
               <div style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 18, border: `1px solid ${C.border}`, background: draft.logoUrl ? "#fff" : C.greenGrad, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                 {draft.logoUrl
                   ? <img src={draft.logoUrl} alt="Logo preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#fff" }} />}
+                  : <BrandMark size={26} />}
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) void pickLogo(f); e.target.value = ""; }} />

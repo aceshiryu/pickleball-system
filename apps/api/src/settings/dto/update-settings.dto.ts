@@ -20,17 +20,17 @@ const LOGO_MAX_CHARS = 262_144;
 const FONT_KEYS = ['space-grotesk', 'inter', 'poppins', 'dm-sans', 'outfit', 'system'];
 
 export class UpdateSettingsDto {
-  @ApiPropertyOptional({ example: 'PicklePlay' })
+  @ApiPropertyOptional({ example: 'AfterHours' })
   @IsOptional()
   @IsString()
   appName?: string;
 
-  @ApiPropertyOptional({ example: '#16a34a' })
+  @ApiPropertyOptional({ example: '#6B2B2B' })
   @IsOptional()
   @IsString()
   primary?: string;
 
-  @ApiPropertyOptional({ example: '#0d1b14' })
+  @ApiPropertyOptional({ example: '#6E7275' })
   @IsOptional()
   @IsString()
   secondary?: string;

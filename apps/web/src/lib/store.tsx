@@ -99,9 +99,9 @@ export interface Branding {
   onboardingComplete: boolean;
 }
 export const DEFAULT_BRANDING: Branding = {
-  appName: 'PicklePlay',
-  primary: '#16a34a',
-  secondary: '#0d1b14',
+  appName: 'AfterHours',
+  primary: '#6B2B2B',
+  secondary: '#6E7275',
   logoUrl: null,
   fontFamily: DEFAULT_FONT_KEY,
   peakHoursWeekday: DEFAULT_PEAK_SCHEDULE.weekday,

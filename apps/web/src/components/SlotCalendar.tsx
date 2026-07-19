@@ -188,7 +188,7 @@ export default function SlotCalendar({
         <div style={{ marginLeft: "auto", display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", fontSize: 12, color: C.muted }}>
           <Legend sw="#ecfdf5" bd="#a7f3d0" label="Off-peak" />
           <Legend sw="#fffbeb" bd="#fcd34d" label="Peak" />
-          <Legend sw="#16a34a" bd="#16a34a" label="Selected" />
+          <Legend sw="var(--brand-primary)" bd="var(--brand-primary)" label="Selected" />
           <Legend sw="#fff1f2" bd="#fecdd3" label="Blocked" />
           <Legend sw="#f8fafc" bd="#cbd5e1" label="On hold" />
           <Legend sw="#f1f5f9" bd="#e2e8f0" label="Booked" />

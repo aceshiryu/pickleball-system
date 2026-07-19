@@ -12,13 +12,15 @@ export class Settings {
   @PrimaryColumn({ type: 'int', default: 1 })
   id: number;
 
-  @Column({ name: 'app_name', default: 'PicklePlay' })
+  @Column({ name: 'app_name', default: 'AfterHours' })
   appName: string;
 
-  @Column({ default: '#16a34a' })
+  @Column({ default: '#6B2B2B' })
   primary: string;
 
-  @Column({ default: '#0d1b14' })
+  // Always rendered behind white text (buttons, step badges), so it has to stay
+  // dark enough to carry it — #6E7275 is 4.85:1. Never set this to white.
+  @Column({ default: '#6E7275' })
   secondary: string;
 
   // Square logo held inline as a data: URL. Kept in the row because the system

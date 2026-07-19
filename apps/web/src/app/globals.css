@@ -7,10 +7,10 @@
   /* Overridden at runtime by BrandingStyle from the facility's font setting. */
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Hanken Grotesk", system-ui, sans-serif;
-  --brand-primary: #16a34a;
-  --brand-primary-d: #15803d;
-  --brand-secondary: #0d1b14;
-  --brand-grad: linear-gradient(145deg, #16a34a, #15803d);
+  --brand-primary: #6b2b2b;
+  --brand-primary-d: #501f1f;
+  --brand-secondary: #6e7275;
+  --brand-grad: linear-gradient(145deg, #6b2b2b, #501f1f);
 }
 
 * {
@@ -28,11 +28,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a {
-  color: #16a34a;
+  color: var(--brand-primary);
   text-decoration: none;
 }
 a:hover {
-  color: #15803d;
+  color: var(--brand-primary-d);
 }
 ::-webkit-scrollbar {
   width: 10px;
