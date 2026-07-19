@@ -18,7 +18,7 @@ PROD carries **no name suffix** — never `-prod` or `-production`.
 
 | Hostname | Service | Descriptor | Serves |
 |---|---|---|---|
-| `demo-customer.bookly-ph.com` | `default` | `apps/web/app.yaml` | customer app **and** the real admin console at `/admin` |
+| `demo.bookly-ph.com` | `default` | `apps/web/app.yaml` | customer app **and** the real admin console at `/admin` |
 | `demo-admin.bookly-ph.com` | `pickleball-admin` | `apps/admin/app.yaml` | `apps/admin` — see the warning below |
 | `demo-api.bookly-ph.com` | `pickleball-api` | `apps/api/app.yaml` | NestJS under `/api`, Swagger at `/api-docs` |
 | anything else | `default` | | customer app |
@@ -28,7 +28,7 @@ PROD carries **no name suffix** — never `-prod` or `-production`.
 > endpoints, which were removed from the API — the page loads and then reports a load failure.
 >
 > The real console is a route inside the customer web app, reachable at
-> **`demo-customer.bookly-ph.com/admin`**. Moving it onto its own hostname means either
+> **`demo.bookly-ph.com/admin`**. Moving it onto its own hostname means either
 > deploying the web bundle a second time under the admin service, or porting the console into
 > `apps/admin` behind a shared component lib.
 
@@ -100,9 +100,9 @@ is IPv6-only, so it will simply hang.
 Map each hostname, then add the DNS records Google returns at your registrar:
 
 ```bash
-gcloud app domain-mappings create demo-customer.bookly-ph.com --project=pickleball-system-502915
-gcloud app domain-mappings create demo-admin.bookly-ph.com    --project=pickleball-system-502915
-gcloud app domain-mappings create demo-api.bookly-ph.com      --project=pickleball-system-502915
+gcloud app domain-mappings create demo.bookly-ph.com       --project=pickleball-system-502915
+gcloud app domain-mappings create demo-admin.bookly-ph.com --project=pickleball-system-502915
+gcloud app domain-mappings create demo-api.bookly-ph.com   --project=pickleball-system-502915
 ```
 
 Until the mappings and DNS exist, the `dispatch.yaml` rules match nothing.

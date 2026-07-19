@@ -23,11 +23,11 @@ dispatch:
   # reports a load failure.
   #
   # The REAL admin console is not here — it is a route inside the customer web
-  # app, reachable at demo-customer.bookly-ph.com/admin.
+  # app, reachable at demo.bookly-ph.com/admin.
   - url: 'demo-admin.bookly-ph.com/*'
     service: pickleball-admin
 
   # --- Customer app ------------------------------------------------------
   # Serves both the customer booking flow and, at /admin, the real console.
-  - url: 'demo-customer.bookly-ph.com/*'
+  - url: 'demo.bookly-ph.com/*'
     service: default

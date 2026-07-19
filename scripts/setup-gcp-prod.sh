@@ -38,7 +38,7 @@ SEC=pickleball-
 
 # Public hostnames (see dispatch.yaml).
 API_HOST=demo-api.bookly-ph.com
-WEB_HOST=demo-customer.bookly-ph.com
+WEB_HOST=demo.bookly-ph.com
 ADMIN_HOST=demo-admin.bookly-ph.com
 
 say () { printf '\n\033[1;32m==> %s\033[0m\n' "$1"; }
@@ -130,9 +130,8 @@ fi
 
 REPO="projects/${PROJECT_ID}/locations/${REGION}/connections/${CONN}/repositories/${GH_REPO}"
 
-# Non-sensitive config only — mirrors apps/api/.env.example. CORS carries BOTH
-# browser hostnames: the console and the customer app are one deployable but
-# reach the API from two different origins.
+# Non-sensitive config only — mirrors apps/api/.env.example. CORS carries both
+# browser hostnames, since either may call the API from its own origin.
 API_SUBS="_GCP_PROJECT_ID=${PROJECT_ID}"
 API_SUBS="${API_SUBS},_NODE_ENV=production,_PORT=8080"
 API_SUBS="${API_SUBS},_DB_NAME=postgres"

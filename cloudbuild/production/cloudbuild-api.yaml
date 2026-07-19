@@ -105,7 +105,7 @@ substitutions:
   _BCRYPT_ROUNDS: '10'
   # Both browser hostnames — the console and the customer app are one Next.js
   # deployable, but they reach the API from two different origins.
-  _CORS_ORIGINS: 'https://demo-customer.bookly-ph.com,https://demo-admin.bookly-ph.com'
+  _CORS_ORIGINS: 'https://demo.bookly-ph.com,https://demo-admin.bookly-ph.com'
   _THROTTLE_TTL: '60'
   _THROTTLE_LIMIT: '100'
 
