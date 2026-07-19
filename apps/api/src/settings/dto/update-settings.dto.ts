@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
@@ -10,7 +11,9 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { PaymentMethodDto } from './payment-method.dto';
 
 // The logo rides inline as a data: URL, so cap it. ~256KB of base64 is a
 // generous 256x256 PNG and keeps the (public, every-page) settings payload sane.
@@ -84,14 +87,14 @@ export class UpdateSettingsDto {
   @Max(23, { each: true })
   peakHoursWeekend?: number[];
 
-  // Accepted payment methods, as labels the customer sees at checkout. Sent as
-  // a whole list, not patched item-by-item, so removing one is just a shorter
-  // array. Capped in length because these render in a fixed-width select.
-  @ApiPropertyOptional({ example: ['Cash', 'GCash', 'Maya'], type: [String] })
+  // Accepted payment methods as structured objects (see PaymentMethodDto). Sent
+  // as a whole list, not patched item-by-item, so removing one is just a shorter
+  // array. Each object is validated per-type (phone for e-wallets, account
+  // fields for bank).
+  @ApiPropertyOptional({ type: [PaymentMethodDto] })
   @IsOptional()
   @IsArray()
-  @ArrayUnique()
-  @IsString({ each: true })
-  @MaxLength(40, { each: true })
-  paymentMethods?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => PaymentMethodDto)
+  paymentMethods?: PaymentMethodDto[];
 }

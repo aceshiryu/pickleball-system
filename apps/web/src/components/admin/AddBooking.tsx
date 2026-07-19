@@ -41,7 +41,7 @@ export default function AddBooking({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const METHODS = paymentMethods;
+  const METHODS = paymentMethods.map((m) => m.label);
   const isCash = method.trim().toLowerCase() === "cash";
   const total = useMemo(() => cartTotal(selected, courts, peakSchedule), [selected, courts, peakSchedule]);
   const groups = useMemo(() => groupByCourt(selected, courts), [selected, courts]);

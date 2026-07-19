@@ -27,7 +27,8 @@ export default function Approvals() {
   const [payErr, setPayErr] = useState("");
 
   // The methods this facility actually accepts, configured in Settings.
-  const METHODS = paymentMethods;
+  // Staff record which method the customer used; the label is the choice.
+  const METHODS = paymentMethods.map((m) => m.label);
 
   const pending = bookings.filter((b) => b.status === "pending_approval");
   const resolved = bookings.filter((b) => b.status === "confirmed" || b.status === "rejected").sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 6);

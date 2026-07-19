@@ -49,9 +49,13 @@ test('admin completes onboarding through the wizard', async ({ page }) => {
   await page.getByRole('button', { name: /^next$/i }).click();
 
   // --- Step 4: payments ---
-  await expect(page.getByText(/payment method/i).first()).toBeVisible();
+  // Picking a type opens a draft form; GCash requires a mobile number before
+  // it can be saved into the list.
+  await expect(page.getByText(/add a payment method/i).first()).toBeVisible();
   await page.getByRole('button', { name: /^\+ GCash$/ }).click();
-  await expect(page.getByText(/^added$/i).first()).toBeVisible();
+  await page.getByPlaceholder(/0917/).fill('0917 555 1234');
+  await page.getByRole('button', { name: /^save method$/i }).click();
+  await expect(page.getByText('0917 555 1234').first()).toBeVisible();
   await page.getByRole('button', { name: /^next$/i }).click();
 
   // --- Step 5: staff is optional ---
@@ -74,5 +78,5 @@ test('onboarding is recorded server-side, not just in the UI', async () => {
   const token = await adminToken();
   const settings = await getSettings(token);
   expect(settings.onboardingCompletedAt).not.toBeNull();
-  expect(settings.paymentMethods).toContain('GCash');
+  expect(settings.paymentMethods.map((m) => m.label)).toContain('GCash');
 });

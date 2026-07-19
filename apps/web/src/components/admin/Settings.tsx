@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Banknote } from "lucide-react";
 import { HOLD_MINUTES, useStore, DEFAULT_BRANDING } from "@/lib/store";
 import { FONTS } from "@/lib/fonts";
 import BrandMark from "../BrandMark";
 import { deriveSecondary, tint } from "@/lib/color";
 import { C, FONT_DISPLAY, primaryBtn } from "@/lib/theme";
-import { useConfirm } from "../Confirm";
 import { Brand } from "../ui";
 import Blackouts from "./Blackouts";
+import PaymentMethods from "./PaymentMethods";
 
 type Tab = "branding" | "payments" | "blackouts" | "policies";
 
@@ -21,10 +20,8 @@ const POLICIES: { icon: string; title: string; value: string; desc: string }[] =
 ];
 
 export default function Settings({ isMobile }: { isMobile: boolean }) {
-  const { paymentMethods, addPaymentMethod, removePaymentMethod, branding, updateBranding, courts, access } = useStore();
-  const confirm = useConfirm();
+  const { branding, updateBranding, courts, access } = useStore();
   const [tab, setTab] = useState<Tab>("branding");
-  const [newMethod, setNewMethod] = useState("");
   // Edit a local draft and save explicitly. Writing on every keystroke fired a
   // PATCH per character and let the refetched server value clobber what was
   // being typed.
@@ -199,48 +196,7 @@ export default function Settings({ isMobile }: { isMobile: boolean }) {
           </div>
 
           <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 18, padding: 18, maxWidth: 560 }}>
-            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              <input
-                value={newMethod}
-                onChange={(e) => setNewMethod(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { addPaymentMethod(newMethod); setNewMethod(""); } }}
-                placeholder="e.g. GCash, Maya, BPI transfer"
-                maxLength={40}
-                style={{ flex: 1, padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: 11, fontFamily: FONT_DISPLAY, fontSize: 14, color: C.slate }}
-              />
-              <button
-                onClick={() => { addPaymentMethod(newMethod); setNewMethod(""); }}
-                disabled={!newMethod.trim()}
-                style={{ ...primaryBtn, padding: "10px 16px", fontSize: 14, boxShadow: "none", opacity: newMethod.trim() ? 1 : 0.5, cursor: newMethod.trim() ? "pointer" : "not-allowed" }}
-              >
-                Add
-              </button>
-            </div>
-
-            {paymentMethods.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "34px 20px", border: `1.5px dashed ${C.border}`, borderRadius: 14 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: C.offBg, margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center", color: C.green }}><Banknote style={{ width: 24, height: 24 }} /></div>
-                <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15 }}>No payment methods yet</div>
-                <div style={{ fontSize: 13, color: C.faint, marginTop: 4 }}>Add at least one so customers know how to pay.</div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {paymentMethods.map((m) => (
-                  <div key={m} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "11px 13px", border: `1px solid ${C.border2}`, borderRadius: 12, background: "#f7faf9" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 9, fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 14, color: C.slate }}>
-                      <Banknote style={{ width: 17, height: 17, color: C.muted }} />
-                      {m}
-                    </span>
-                    <button
-                      onClick={async () => { if (await confirm({ title: "Remove payment method?", message: `Customers will no longer see ${m} at checkout.`, confirmLabel: "Remove", danger: true })) removePaymentMethod(m); }}
-                      style={{ fontSize: 12.5, color: C.blockInk2, background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <PaymentMethods />
           </div>
         </div>
       )}

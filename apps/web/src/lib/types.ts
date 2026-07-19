@@ -20,6 +20,25 @@ export interface Court {
   status: CourtStatus;
 }
 
+// A facility's accepted payment method. `type` drives which detail fields
+// apply and how checkout renders it; `label` is the name the customer picks.
+//   gcash / maya : phone required, qr optional
+//   bank         : bankName + accountNumber + accountName required, qr optional
+//   cash / other : label only
+export type PaymentMethodType = "gcash" | "maya" | "bank" | "cash" | "other";
+
+export interface PaymentMethod {
+  id: string;
+  type: PaymentMethodType;
+  label: string;
+  phone?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  // Optional QR image as a data: URL (same inline convention as the logo).
+  qr?: string | null;
+}
+
 export interface Customer {
   id: string;
   name: string;

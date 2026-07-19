@@ -94,15 +94,28 @@ export async function listCourts(
   return req('GET', '/courts', { token });
 }
 
+// Payment methods are structured objects now. This helper takes a light shape
+// and fills the required per-type fields so arrangement stays terse.
+export interface E2EPaymentMethod {
+  id: string;
+  type: 'gcash' | 'maya' | 'bank' | 'cash' | 'other';
+  label: string;
+  phone?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  qr?: string | null;
+}
+
 export async function setPaymentMethods(
   token: string,
-  methods: string[],
+  methods: E2EPaymentMethod[],
 ): Promise<void> {
   await req('PATCH', '/settings', { token, body: { paymentMethods: methods } });
 }
 
 export async function getSettings(token?: string): Promise<{
-  paymentMethods: string[];
+  paymentMethods: E2EPaymentMethod[];
   onboardingCompletedAt: string | null;
   appName: string;
 }> {
@@ -128,7 +141,10 @@ export async function provisionFacility(opts: { courtName?: string } = {}) {
     courts.find((c) => c.name === courtName) ??
     (await createCourt(token, { name: courtName }));
 
-  await setPaymentMethods(token, ['Cash', 'GCash']);
+  await setPaymentMethods(token, [
+    { id: 'm_cash', type: 'cash', label: 'Cash' },
+    { id: 'm_gcash', type: 'gcash', label: 'GCash', phone: '0917 555 1234' },
+  ]);
   if (!settings.onboardingCompletedAt) await completeOnboarding(token);
 
   return { token, court };

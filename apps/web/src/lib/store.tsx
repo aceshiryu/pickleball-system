@@ -19,6 +19,7 @@ import type {
   Court,
   Customer,
   Override,
+  PaymentMethod,
   Role,
   Staff,
 } from './types';
@@ -92,8 +93,9 @@ export interface Branding {
   // Opening hours. closeHour is exclusive, so 0-24 means open all day.
   openHour: number;
   closeHour: number;
-  // Payment methods this facility accepts, shown to customers at checkout.
-  paymentMethods: string[];
+  // Payment methods this facility accepts, shown to customers at checkout
+  // with their per-type details (phone, bank account, QR).
+  paymentMethods: PaymentMethod[];
   // False until the admin finishes first-run setup; the console is locked and
   // most write APIs are refused until then.
   onboardingComplete: boolean;
@@ -108,7 +110,7 @@ export const DEFAULT_BRANDING: Branding = {
   peakHoursWeekend: DEFAULT_PEAK_SCHEDULE.weekend,
   openHour: DEFAULT_OPEN_HOUR,
   closeHour: DEFAULT_CLOSE_HOUR,
-  paymentMethods: ['Cash'],
+  paymentMethods: [],
   // Assume complete until settings load, so the modal can't flash on a
   // configured facility.
   onboardingComplete: true,
@@ -161,9 +163,9 @@ interface StoreValue {
   signInAs: (id: string) => void;
 
   // payment methods (facility config, stored on settings)
-  paymentMethods: string[];
-  addPaymentMethod: (label: string) => void;
-  removePaymentMethod: (label: string) => void;
+  paymentMethods: PaymentMethod[];
+  savePaymentMethod: (m: PaymentMethod) => void;
+  removePaymentMethod: (id: string) => void;
   completeOnboarding: () => Promise<void>;
   onboardingComplete: boolean;
 
@@ -668,25 +670,25 @@ function StoreInner({ children }: { children: React.ReactNode }) {
   // Stored as a whole array on settings, so add/remove are just list edits.
   // Case-insensitive dedupe: 'GCash' and 'gcash' are the same method to a
   // customer reading a dropdown.
-  function addPaymentMethod(label: string) {
-    const next = label.trim();
-    if (!next) return;
+  // Insert or replace a method by id — the editor stages a full object, so
+  // there's a single save path for both add and edit.
+  function savePaymentMethod(m: PaymentMethod) {
     const existing = branding.paymentMethods;
-    if (existing.some((m) => m.toLowerCase() === next.toLowerCase())) {
-      pushToast({
-        kind: 'info',
-        title: 'Already added',
-        body: `${next} is already an accepted method.`,
-      });
-      return;
-    }
-    updateBranding({ paymentMethods: [...existing, next] });
-    pushToast({ kind: 'success', title: 'Payment method added', body: next });
+    const isNew = !existing.some((x) => x.id === m.id);
+    const next = isNew
+      ? [...existing, m]
+      : existing.map((x) => (x.id === m.id ? m : x));
+    updateBranding({ paymentMethods: next });
+    pushToast({
+      kind: 'success',
+      title: isNew ? 'Payment method added' : 'Payment method updated',
+      body: m.label,
+    });
   }
 
-  function removePaymentMethod(label: string) {
+  function removePaymentMethod(id: string) {
     updateBranding({
-      paymentMethods: branding.paymentMethods.filter((m) => m !== label),
+      paymentMethods: branding.paymentMethods.filter((m) => m.id !== id),
     });
   }
 
@@ -785,7 +787,7 @@ function StoreInner({ children }: { children: React.ReactNode }) {
       setStaffAccess,
       signInAs,
       paymentMethods: branding.paymentMethods,
-      addPaymentMethod,
+      savePaymentMethod,
       removePaymentMethod,
       completeOnboarding,
       onboardingComplete: branding.onboardingComplete,

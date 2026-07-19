@@ -10,6 +10,7 @@ import { peso } from "@/lib/pricing";
 import { prepareReceipt } from "@/lib/image";
 import { Modal, iconBtn } from "../ui";
 import { groupByCourt } from "./Cart";
+import PaymentInstructions from "./PaymentInstructions";
 import { C, FONT_DISPLAY, primaryBtn } from "@/lib/theme";
 
 const ctc: React.CSSProperties = { width: "100%", padding: 10, border: `1px solid ${C.border}`, borderRadius: 10, fontFamily: FONT_DISPLAY, fontSize: 13.5, boxSizing: "border-box", color: C.slate, background: "#fff" };
@@ -317,17 +318,7 @@ export default function Checkout({
 
           <div style={{ margin: "18px 0 14px" }}>
             <div style={{ fontSize: 13, color: "#475569", marginBottom: 10 }}>Pay <strong style={{ color: C.green }}>{peso(total)}</strong> using any method below, then upload your receipt.</div>
-            {paymentMethods.length > 0 ? (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {paymentMethods.map((m) => (
-                  <span key={m} style={{ padding: "7px 13px", borderRadius: 999, border: `1px solid ${C.border}`, background: "#f7faf9", fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 13, color: C.slate }}>{m}</span>
-                ))}
-              </div>
-            ) : (
-              <div style={{ fontSize: 12.5, color: C.faint, padding: "10px 12px", background: "#f7faf9", border: `1px solid ${C.border2}`, borderRadius: 12 }}>
-                Ask the facility for payment details, then upload your receipt below.
-              </div>
-            )}
+            <PaymentInstructions methods={paymentMethods} />
           </div>
 
           <div style={{ fontSize: 13, fontWeight: 600, color: C.slate, marginBottom: 8 }}>

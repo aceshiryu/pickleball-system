@@ -65,6 +65,9 @@ export class SettingsService {
     if (dto.peakHoursWeekend !== undefined) {
       settings.peakHoursWeekend = normalizeHours(dto.peakHoursWeekend);
     }
+    if (dto.paymentMethods !== undefined) {
+      settings.paymentMethods = dto.paymentMethods;
+    }
     return this.repo.save(settings);
   }
 

@@ -2,10 +2,11 @@
 
 import React, { useMemo, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
-import type { Court } from "@/lib/types";
+import type { Court, PaymentMethod } from "@/lib/types";
 import { hourLabel } from "@/lib/dates";
 import { peso } from "@/lib/pricing";
 import BrandMark from "../BrandMark";
+import PaymentMethods from "./PaymentMethods";
 import { prepareReceipt } from "@/lib/image";
 import { FONTS, fontByKey } from "@/lib/fonts";
 import { deriveSecondary, tint } from "@/lib/color";
@@ -32,7 +33,7 @@ const REQUIRED_COUNT = STEPS.filter((s) => !s.optional && !s.review).length;
 
 export default function Onboarding() {
   const {
-    branding, updateBranding, courts, addCourt, updateCourt, paymentMethods, addPaymentMethod,
+    branding, updateBranding, courts, addCourt, updateCourt, paymentMethods,
     staff, addStaff, bookableHours, completeOnboarding,
   } = useStore();
 
@@ -106,7 +107,7 @@ export default function Onboarding() {
             {cur.id === "brand" && <BrandStep branding={branding} updateBranding={updateBranding} />}
             {cur.id === "hours" && <HoursStep branding={branding} updateBranding={updateBranding} courts={courts} addCourt={addCourt} updateCourt={updateCourt} />}
             {cur.id === "peak" && <PeakStep branding={branding} updateBranding={updateBranding} hours={bookableHours} />}
-            {cur.id === "payments" && <PaymentsStep methods={paymentMethods} addPaymentMethod={addPaymentMethod} />}
+            {cur.id === "payments" && <PaymentsStep />}
             {cur.id === "staff" && <StaffStep staff={staff} addStaff={addStaff} />}
             {cur.id === "review" && (
               <ReviewStep
@@ -359,53 +360,19 @@ function PeakStep({ branding, updateBranding, hours }: any) {
   );
 }
 
-function PaymentsStep({ methods, addPaymentMethod }: any) {
-  const [label, setLabel] = useState("");
-  const valid = !!label.trim();
-  const SUGGESTED = ["GCash", "Maya", "Bank transfer", "Cash"];
-  const unused = SUGGESTED.filter(
-    (m: string) => !methods.some((x: string) => x.toLowerCase() === m.toLowerCase()),
-  );
+function reviewDetail(m: PaymentMethod): string {
+  if (m.type === "gcash" || m.type === "maya") return m.phone || "—";
+  if (m.type === "bank") return [m.accountNumber, m.accountName].filter(Boolean).join(" · ") || "—";
+  if (m.type === "cash") return "Pay at facility";
+  return "Accepted";
+}
 
+function PaymentsStep() {
   return (
     <>
       <H>Payments</H>
-      <P>How customers pay you. At least one method is required — customers pick one at checkout and upload their receipt.</P>
-
-      {methods.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-          {methods.map((m: string) => (
-            <div key={m} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", border: `1px solid ${C.border2}`, borderRadius: 11 }}>
-              <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600 }}>{m}</div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.offInkD, background: C.offBg, padding: "2px 8px", borderRadius: 999 }}>Added</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div style={{ border: `1px solid ${C.border2}`, borderRadius: 12, padding: 12 }}>
-        <L>Payment method</L>
-        <input
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && valid) { addPaymentMethod(label); setLabel(""); } }}
-          placeholder="e.g. GCash, Maya, BPI transfer"
-          maxLength={40}
-          style={fld}
-        />
-        {unused.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "9px 0 2px" }}>
-            {unused.map((m: string) => (
-              <button key={m} onClick={() => addPaymentMethod(m)} style={{ padding: "5px 11px", borderRadius: 999, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12.5, fontWeight: 600, color: C.slate, cursor: "pointer" }}>+ {m}</button>
-            ))}
-          </div>
-        )}
-        <button
-          onClick={() => { if (!valid) return; addPaymentMethod(label); setLabel(""); }}
-          disabled={!valid}
-          style={{ ...primaryBtn, width: "100%", marginTop: 10, padding: 11, fontSize: 13.5, boxShadow: "none", background: valid ? primaryBtn.background : "#cbd5cf", cursor: valid ? "pointer" : "not-allowed" }}
-        >Add payment method</button>
-      </div>
+      <P>How customers pay you. At least one method is required — customers pick one at checkout, see its details, and upload their receipt.</P>
+      <PaymentMethods />
     </>
   );
 }
@@ -512,8 +479,8 @@ function ReviewStep({ branding, courts, methods, staff, dataDone, goTo }: any) {
       <Group n={3} title="Payments" ok={dataDone.payments} goTo={goTo}>
         {methods.length === 0 ? (
           <div style={{ fontSize: 12.5, color: "#e11d48" }}>No payment method added yet.</div>
-        ) : methods.map((m: string) => (
-          <Line key={m} k={m} v="Accepted" />
+        ) : methods.map((m: PaymentMethod) => (
+          <Line key={m.id} k={m.label} v={reviewDetail(m)} />
         ))}
       </Group>
 

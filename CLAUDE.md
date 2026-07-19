@@ -71,11 +71,31 @@ which reads local `getFullYear()`/`getMonth()`/`getDate()` parts. Never `.toISOS
 
 ## Payment methods
 
-The facility's accepted methods (`settings.payment_methods`, a text array) are what
-customers pick at checkout and staff record on approval. There is no QR image and no
-`payment_qrs` table — that module stored a label plus a filename with no file behind
-it, so it was dropped and the labels moved onto settings. Onboarding still requires
-at least one method before it can be finished.
+The facility's accepted methods live in `settings.payment_methods`, a **jsonb** array
+of structured objects (`PaymentMethod`): `{ id, type, label, ...details, qr? }`. `type`
+is one of `gcash | maya | bank | cash | other` and drives which detail fields apply and
+how checkout renders it:
+
+- **gcash / maya** — `phone` required, `qr` optional
+- **bank** — `bankName` + `accountNumber` + `accountName` required, `qr` optional; `label`
+  tracks the bank name (what the customer picks)
+- **cash / other** — label only
+
+Customers pick one at checkout and **see its details + QR** (shared `PaymentInstructions`),
+so this is customer-facing config, not just a label. Staff record the chosen `label` on
+approval. The admin editor is the shared `PaymentMethods` component (onboarding + Settings
+both render it, so they can't drift): pick a type → fill a draft form → save into the list →
+edit/remove. Per-type required fields are enforced client-side **and** server-side via
+`PaymentMethodDto` (`@ValidateIf` by type). Onboarding still requires at least one method.
+
+The old `payment_qrs` table and the labels-only `text[]` were both interim: the QR module
+stored a filename with no file, and labels alone couldn't tell a customer how to pay. This
+is the real version Ace asked for. QRs ride inline as data: URLs (same convention as the
+logo, capped ~128KB each) — when the logo moves to Supabase, move these with it.
+
+The `settings.update()` service must persist `paymentMethods` explicitly (it maps each
+field by hand). It didn't before — the bug was masked by the old `'{Cash}'` default always
+having length ≥1, so onboarding's "at least one method" check passed without a real save.
 
 ## Storage & receipts
 

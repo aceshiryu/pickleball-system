@@ -5,6 +5,7 @@ import {
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { PaymentMethod } from './payment-method.interface';
 
 // White-label branding — a single row (id = 1). Recolors the whole system.
 @Entity({ name: 'settings' })
@@ -56,17 +57,17 @@ export class Settings {
   })
   peakHoursWeekend: number[];
 
-  // Payment methods this facility accepts, as free-text labels ('GCash',
-  // 'Maya', 'BPI transfer'). Customers pick one at checkout and admins record
-  // one on approval, so the list is facility config rather than a fixed enum —
-  // every facility takes a different set. 'Cash' is seeded as a sane default.
+  // Payment methods this facility accepts, as structured objects (type + label
+  // + per-type details like a GCash phone or bank account, and an optional QR).
+  // Customers pick one at checkout and see its details; admins record one on
+  // approval. Facility config rather than a fixed enum — every facility differs.
+  // Starts empty; onboarding requires at least one before it can be finished.
   @Column({
     name: 'payment_methods',
-    type: 'text',
-    array: true,
-    default: () => `'{Cash}'`,
+    type: 'jsonb',
+    default: () => `'[]'::jsonb`,
   })
-  paymentMethods: string[];
+  paymentMethods: PaymentMethod[];
 
   // Key of the facility's chosen font pairing (see web lib/fonts.ts).
   @Column({ name: 'font_family', type: 'varchar', default: 'space-grotesk' })

@@ -847,26 +847,43 @@ describe('PicklePlay system e2e', () => {
   });
 
   describe('payment methods', () => {
-    it('admin sets the methods the customer can read', async () => {
+    it('admin sets the structured methods the customer can read', async () => {
+      const methods = [
+        { id: 'm1', type: 'cash', label: 'Cash' },
+        { id: 'm2', type: 'gcash', label: 'GCash', phone: '0917 555 1234' },
+      ];
       await http(app)
         .patch('/api/settings')
         .set(bearer(adminToken))
-        .send({ paymentMethods: ['Cash', 'GCash'] })
+        .send({ paymentMethods: methods })
         .expect(200);
       // Settings are public (the login page reads branding pre-auth), so the
-      // customer sees the same list they must pick from at checkout.
+      // customer sees the same details they need to pay at checkout.
       const res = await http(app)
         .get('/api/settings')
         .set(bearer(customerToken))
         .expect(200);
-      expect(res.body.paymentMethods).toEqual(['Cash', 'GCash']);
+      expect(res.body.paymentMethods).toHaveLength(2);
+      expect(res.body.paymentMethods[1]).toMatchObject({
+        type: 'gcash',
+        label: 'GCash',
+        phone: '0917 555 1234',
+      });
     });
 
-    it('rejects a duplicate method', async () => {
+    it('rejects a gcash method missing its required phone', async () => {
       await http(app)
         .patch('/api/settings')
         .set(bearer(adminToken))
-        .send({ paymentMethods: ['Cash', 'Cash'] })
+        .send({ paymentMethods: [{ id: 'm1', type: 'gcash', label: 'GCash' }] })
+        .expect(400);
+    });
+
+    it('rejects a bank method missing its account fields', async () => {
+      await http(app)
+        .patch('/api/settings')
+        .set(bearer(adminToken))
+        .send({ paymentMethods: [{ id: 'm1', type: 'bank', label: 'BPI' }] })
         .expect(400);
     });
   });

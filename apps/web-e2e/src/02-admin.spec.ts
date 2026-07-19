@@ -57,14 +57,14 @@ test('settings: adding a payment method persists it', async ({ page }) => {
   await gotoAdminSection(page, /^settings$/i);
   await page.getByText(/payment methods/i).first().click();
 
-  await page
-    .getByPlaceholder(/e\.g\. GCash, Maya, BPI transfer/i)
-    .fill('Maya');
-  await page.getByRole('button', { name: /^add$/i }).click();
-  await expect(page.getByText('Maya').first()).toBeVisible();
+  // New structured editor: pick Maya, enter the required mobile number, save.
+  await page.getByRole('button', { name: /^\+ Maya$/ }).click();
+  await page.getByPlaceholder(/0917/).fill('0917 222 3333');
+  await page.getByRole('button', { name: /^save method$/i }).click();
+  await expect(page.getByText('0917 222 3333').first()).toBeVisible();
 
   const settings = await getSettings(await adminToken());
-  expect(settings.paymentMethods).toContain('Maya');
+  expect(settings.paymentMethods.map((m) => m.label)).toContain('Maya');
 });
 
 test('approvals: approve a pending booking with method and reference', async ({

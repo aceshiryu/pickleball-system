@@ -6,6 +6,7 @@ import type { Booking } from "@/lib/types";
 import { peso } from "@/lib/pricing";
 import { prepareReceipt } from "@/lib/image";
 import { C, FONT_DISPLAY, primaryBtn } from "@/lib/theme";
+import PaymentInstructions from "./PaymentInstructions";
 
 // Lets a customer finish paying for a still-held booking straight from My
 // bookings: shows the same payment methods as the checkout modal, takes a receipt
@@ -107,17 +108,7 @@ export default function HoldPayment({
         <div style={{ fontSize: 13, color: "#475569", marginBottom: 10 }}>
           Pay <strong style={{ color: C.green }}>{peso(booking.total)}</strong> using any method below, then upload your receipt.
         </div>
-        {paymentMethods.length > 0 ? (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {paymentMethods.map((m) => (
-              <span key={m} style={{ padding: "7px 13px", borderRadius: 999, border: `1px solid ${C.border}`, background: "#f7faf9", fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 13, color: C.slate }}>{m}</span>
-            ))}
-          </div>
-        ) : (
-          <div style={{ fontSize: 12.5, color: C.faint, padding: "10px 12px", background: "#f7faf9", border: `1px solid ${C.border2}`, borderRadius: 12 }}>
-            Ask the facility for payment details, then upload your receipt below.
-          </div>
-        )}
+        <PaymentInstructions methods={paymentMethods} />
       </div>
 
       {/* Upload */}

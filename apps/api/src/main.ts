@@ -2,11 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: false });
+  // Take over body parsing so we can raise the limit. Several payloads carry
+  // inline images as data: URLs — payment-method QRs and the brand logo on a
+  // settings PATCH, and receipts on a booking — which blow past body-parser's
+  // 100kb default and would otherwise 413 before validation ever runs.
+  const app = await NestFactory.create(AppModule, { cors: false, bodyParser: false });
+  app.use(json({ limit: '5mb' }));
+  app.use(urlencoded({ extended: true, limit: '5mb' }));
 
   // helmet hardening, tuned for local dev + Swagger UI:
   // - hsts only in production (HSTS forces HTTPS and browsers — esp. Safari —

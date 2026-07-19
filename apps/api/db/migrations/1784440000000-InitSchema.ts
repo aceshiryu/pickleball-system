@@ -90,7 +90,7 @@ export class InitSchema1784440000000 implements MigrationInterface {
         "close_hour" integer NOT NULL DEFAULT 22,
         "peak_hours_weekday" integer array NOT NULL DEFAULT '{17,18,19,20,21}',
         "peak_hours_weekend" integer array NOT NULL DEFAULT '{6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21}',
-        "payment_methods" text array NOT NULL DEFAULT '{Cash}',
+        "payment_methods" jsonb NOT NULL DEFAULT '[]'::jsonb,
         "onboarding_completed_at" TIMESTAMP WITH TIME ZONE,
         "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
         "deleted_at" TIMESTAMP WITH TIME ZONE,
