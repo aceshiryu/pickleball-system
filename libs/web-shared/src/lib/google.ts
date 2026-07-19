@@ -23,6 +23,7 @@ interface GoogleAccounts {
         client_id: string;
         callback: (res: { credential?: string }) => void;
         cancel_on_tap_outside?: boolean;
+        use_fedcm_for_prompt?: boolean;
       }): void;
       prompt(listener?: (n: PromptNotification) => void): void;
     };
@@ -80,6 +81,10 @@ export async function requestGoogleIdToken(): Promise<string> {
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       cancel_on_tap_outside: true,
+      // FedCM lets One Tap run through the browser's own identity UI, so it no
+      // longer depends on third-party cookies — which Chrome now blocks by
+      // default. Without this the prompt silently fails to display.
+      use_fedcm_for_prompt: true,
       callback: (res) => {
         if (res.credential) resolve(res.credential);
         else reject(new GoogleSignInError("Google sign-in was cancelled."));
@@ -87,12 +92,17 @@ export async function requestGoogleIdToken(): Promise<string> {
     });
 
     google.accounts.id.prompt((n) => {
-      // One Tap suppresses itself if the user dismissed it recently or blocks
-      // third-party cookies. Surface that instead of leaving the button stuck.
-      if (n.isNotDisplayed() || n.isSkippedMoment()) {
+      // Under FedCM the isNotDisplayed()/isSkippedMoment() inspectors are
+      // removed, so feature-detect before calling them (calling a missing one
+      // throws). When present (older browsers) a suppressed prompt still means
+      // the chooser couldn't open — surface it instead of a stuck button.
+      const suppressed =
+        (typeof n.isNotDisplayed === "function" && n.isNotDisplayed()) ||
+        (typeof n.isSkippedMoment === "function" && n.isSkippedMoment());
+      if (suppressed) {
         reject(
           new GoogleSignInError(
-            "Google sign-in didn't open. Allow third-party cookies for this site and try again.",
+            "Google sign-in didn't open. Try again — if it keeps failing, open the site in a private window, or check that pop-ups aren't blocked.",
           ),
         );
       }
