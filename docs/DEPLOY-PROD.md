@@ -41,7 +41,12 @@ other service until it exists. Since `apps/web/app.yaml` claims that slot, web g
 ./scripts/setup-gcp-prod.sh
 ```
 
-Idempotent — every create is guarded, so re-running only adds secret versions you re-enter.
+Idempotent — every create is guarded, so re-running is safe. If you're re-running after a
+failure in a later phase and don't want to re-type all six secret values:
+
+```bash
+SKIP_SECRETS=1 ./scripts/setup-gcp-prod.sh
+```
 
 ### Before you run it
 
@@ -165,3 +170,4 @@ gcloud app logs tail -s pickleball-api                 # build green but not ser
 | `Cannot find module '/workspace/server.js'` | `app.yaml` missing `entrypoint` (api → `node main.js`, web → `node apps/web/server.js`) |
 | web crashes at `require('next')` | `.next` not uploaded — missing `.gcloudignore` in the standalone deploy dir |
 | a shell var came through empty in a build step | inline `bash -c` used `$FOO` where Cloud Build ate it as a substitution; double it to `$$FOO` |
+| `--substitutions: Bad syntax for dict arg` | a substitution *value* contains a comma (here, `_CORS_ORIGINS`). gcloud splits pairs on commas and backslash-escaping does **not** help — prefix the whole string with `^;^` to switch the separator to `;`, which is what the script does |

@@ -88,6 +88,9 @@ done
 # project where the database is always `postgres`, so the value is identical
 # everywhere and secret-worthy of nothing. It is a plain `_DB_NAME` substitution
 # in cloudbuild/production/cloudbuild-api.yaml instead.
+#
+# Re-running a later phase after a failure? Skip re-entering all six values with:
+#   SKIP_SECRETS=1 ./scripts/setup-gcp-prod.sh
 say "Phase D — Secret Manager"
 
 create_secret () {  # $1=name  $2=value
@@ -100,23 +103,27 @@ create_secret () {  # $1=name  $2=value
   fi
 }
 
-echo "  Supabase: use the SESSION POOLER host (IPv4). App Engine standard has no"
-echo "  IPv6 outbound, and db.<ref>.supabase.co is IPv6-only — it will hang."
-echo "  Pooler looks like: aws-0-<region>.pooler.supabase.com / user postgres.<ref>"
-echo
+if [ "${SKIP_SECRETS:-}" = "1" ]; then
+  echo "  SKIP_SECRETS=1 — leaving existing secret versions untouched."
+else
+  echo "  Supabase: use the SESSION POOLER host (IPv4). App Engine standard has no"
+  echo "  IPv6 outbound, and db.<ref>.supabase.co is IPv6-only — it will hang."
+  echo "  Pooler looks like: aws-0-<region>.pooler.supabase.com / user postgres.<ref>"
+  echo
 
-read -rsp "  JWT_SECRET (hidden, long random string): " V_JWT; echo
-create_secret "${SEC}jwt-secret" "$V_JWT"
+  read -rsp "  JWT_SECRET (hidden, long random string): " V_JWT; echo
+  create_secret "${SEC}jwt-secret" "$V_JWT"
 
-read -rsp "  DB_PASSWORD (hidden): " V_DBPW; echo
-create_secret "${SEC}db-password" "$V_DBPW"
+  read -rsp "  DB_PASSWORD (hidden): " V_DBPW; echo
+  create_secret "${SEC}db-password" "$V_DBPW"
 
-read -rsp "  SUPABASE_SERVICE_ROLE_KEY (hidden — server-side only, never in a NEXT_PUBLIC_ var): " V_SRK; echo
-create_secret "${SEC}supabase-service-role-key" "$V_SRK"
+  read -rsp "  SUPABASE_SERVICE_ROLE_KEY (hidden — server-side only, never in a NEXT_PUBLIC_ var): " V_SRK; echo
+  create_secret "${SEC}supabase-service-role-key" "$V_SRK"
 
-read -rp  "  DB_HOST: "                  V_DBH; create_secret "${SEC}db-host"     "$V_DBH"
-read -rp  "  DB_PORT [5432]: "           V_DBP; create_secret "${SEC}db-port"     "${V_DBP:-5432}"
-read -rp  "  DB_USERNAME: "              V_DBU; create_secret "${SEC}db-username" "$V_DBU"
+  read -rp  "  DB_HOST: "                  V_DBH; create_secret "${SEC}db-host"     "$V_DBH"
+  read -rp  "  DB_PORT [5432]: "           V_DBP; create_secret "${SEC}db-port"     "${V_DBP:-5432}"
+  read -rp  "  DB_USERNAME: "              V_DBU; create_secret "${SEC}db-username" "$V_DBU"
+fi
 
 # ------------------------------------------------- Phase E — Cloud Build triggers
 say "Phase E — Cloud Build triggers"
@@ -139,18 +146,22 @@ fi
 
 REPO="projects/${PROJECT_ID}/locations/${REGION}/connections/${CONN}/repositories/${GH_REPO}"
 
-# Non-sensitive config only — mirrors apps/api/.env.example. CORS carries both
-# browser hostnames, since either may call the API from its own origin.
-API_SUBS="_GCP_PROJECT_ID=${PROJECT_ID}"
-API_SUBS="${API_SUBS},_NODE_ENV=production,_PORT=8080"
-API_SUBS="${API_SUBS},_DB_NAME=postgres"
-API_SUBS="${API_SUBS},_DB_SYNCHRONIZE=false,_DB_LOGGING=false,_DB_SSL=true"
-API_SUBS="${API_SUBS},_JWT_EXPIRES_IN=7d,_BCRYPT_ROUNDS=10"
-API_SUBS="${API_SUBS},_CORS_ORIGINS=https://${WEB_HOST}\\,https://${ADMIN_HOST}"
-API_SUBS="${API_SUBS},_THROTTLE_TTL=60,_THROTTLE_LIMIT=100"
-API_SUBS="${API_SUBS},_GOOGLE_CLIENT_ID=${V_GID}"
-API_SUBS="${API_SUBS},_SUPABASE_URL=${V_SURL}"
-API_SUBS="${API_SUBS},_SUPABASE_RECEIPTS_BUCKET=receipts,_SUPABASE_PUBLIC_BUCKET=brand"
+# Non-sensitive config only — mirrors apps/api/.env.example.
+#
+# The leading `^;^` switches gcloud's dict parser from comma to semicolon as the
+# pair separator. CORS_ORIGINS is itself a comma-separated list, and with the
+# default separator gcloud splits mid-value and fails with
+# "Bad syntax for dict arg". Backslash-escaping the comma does NOT work here.
+API_SUBS="^;^_GCP_PROJECT_ID=${PROJECT_ID}"
+API_SUBS="${API_SUBS};_NODE_ENV=production;_PORT=8080"
+API_SUBS="${API_SUBS};_DB_NAME=postgres"
+API_SUBS="${API_SUBS};_DB_SYNCHRONIZE=false;_DB_LOGGING=false;_DB_SSL=true"
+API_SUBS="${API_SUBS};_JWT_EXPIRES_IN=7d;_BCRYPT_ROUNDS=10"
+API_SUBS="${API_SUBS};_CORS_ORIGINS=https://${WEB_HOST},https://${ADMIN_HOST}"
+API_SUBS="${API_SUBS};_THROTTLE_TTL=60;_THROTTLE_LIMIT=100"
+API_SUBS="${API_SUBS};_GOOGLE_CLIENT_ID=${V_GID}"
+API_SUBS="${API_SUBS};_SUPABASE_URL=${V_SURL}"
+API_SUBS="${API_SUBS};_SUPABASE_RECEIPTS_BUCKET=receipts;_SUPABASE_PUBLIC_BUCKET=brand"
 
 # NEXT_PUBLIC_* is inlined at BUILD time by Next, so it comes from the trigger
 # substitution rather than App Engine env_variables.
