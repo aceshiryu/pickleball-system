@@ -4,6 +4,12 @@
 const BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001/api';
 
+// Shipped "web key" that unlocks the guest + calendar-read endpoints
+// (PublicKeyGuard on the API). Inlined into the bundle at build time, so it's a
+// bar against casual/direct access, not a secret. Empty in dev — the API's gate
+// is off until WEB_PUBLIC_API_KEY is set there too.
+const WEB_KEY = process.env.NEXT_PUBLIC_WEB_KEY ?? '';
+
 const TOKEN_KEY = 'pp_token';
 
 export function getToken(): string | null {
@@ -33,6 +39,7 @@ async function req<T>(
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (WEB_KEY) headers['X-Web-Key'] = WEB_KEY;
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 

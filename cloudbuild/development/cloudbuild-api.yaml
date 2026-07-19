@@ -48,6 +48,8 @@ steps:
       - 'CORS_ORIGINS=${_CORS_ORIGINS}'
       - 'THROTTLE_TTL=${_THROTTLE_TTL}'
       - 'THROTTLE_LIMIT=${_THROTTLE_LIMIT}'
+      # Web-key gate for the guest + calendar-read endpoints (PublicKeyGuard).
+      - 'WEB_PUBLIC_API_KEY=${_WEB_PUBLIC_API_KEY}'
 
   - name: 'node:${_NODE_VERSION}'
     id: 'install-prod-deps'
@@ -110,6 +112,7 @@ substitutions:
   _CORS_ORIGINS: 'https://replace-me.com'
   _THROTTLE_TTL: '60'
   _THROTTLE_LIMIT: '100'
+  _WEB_PUBLIC_API_KEY: ''
 
 availableSecrets:
   secretManager:

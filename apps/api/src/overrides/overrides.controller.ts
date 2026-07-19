@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
+import { PublicKeyGuard } from '../common/guards/public-key.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CreateOverrideDto } from './dto/create-override.dto';
@@ -19,9 +20,10 @@ import { OverridesService } from './overrides.service';
 export class OverridesController {
   constructor(private readonly overridesService: OverridesService) {}
 
-  // Public: guests booking on the calendar must see blackouts too. Mutations
-  // below stay staff-only.
+  // Web-key gated: guests booking on the calendar must see blackouts too.
+  // Mutations below stay staff-only.
   @Get()
+  @UseGuards(PublicKeyGuard)
   findAll() {
     return this.overridesService.findAll();
   }

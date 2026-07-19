@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
+import { PublicKeyGuard } from '../common/guards/public-key.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
@@ -20,9 +21,11 @@ import { SettingsService } from './settings.service';
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
-  // Public — branding (app name + colors) recolors the whole app, including
-  // the landing and login pages shown before authentication.
+  // Web-key gated — branding (app name + colors) recolors the whole app,
+  // including the landing/login pages shown before authentication, and this
+  // also carries the facility's payment details, so it's behind the web key.
   @Get()
+  @UseGuards(PublicKeyGuard)
   async get() {
     const s = await this.settingsService.get();
     // Flatten the timestamp to a boolean the console can branch on.

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
+import { PublicKeyGuard } from '../common/guards/public-key.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import {
@@ -52,9 +53,10 @@ export class BookingsController {
     return this.bookingsService.findMine(user.sub);
   }
 
-  // Public: slot states only (open / taken / held), no PII — guests need it to
-  // see the calendar before signing in.
+  // Web-key gated: slot states only (open / taken / held), no PII. Guests need
+  // it to see the calendar before signing in, but it's not wide open.
   @Get('availability')
+  @UseGuards(PublicKeyGuard)
   availability() {
     return this.bookingsService.availability();
   }
@@ -67,16 +69,18 @@ export class BookingsController {
   }
 
   // --- guest (no account) ---
-  // Public counterparts of the customer flow. Ownership is proved by the
-  // guestToken returned from hold, not a JWT.
+  // Web-key gated (PublicKeyGuard), not wide open. Ownership of a specific
+  // booking is still proved by the guestToken returned from hold, not a JWT.
   @Post('guest/hold')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(PublicKeyGuard)
   guestHold(@Body() dto: GuestHoldDto) {
     return this.bookingsService.holdGuest(dto.items, dto.contact);
   }
 
   @Post('guest/submit-payment')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(PublicKeyGuard)
   guestSubmitPayment(@Body() dto: GuestSubmitPaymentDto) {
     return this.bookingsService.submitPaymentGuest(
       dto.guestToken,
@@ -88,6 +92,7 @@ export class BookingsController {
 
   @Post('guest/release-holds')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(PublicKeyGuard)
   guestReleaseHolds(@Body() dto: GuestReleaseHoldsDto) {
     return this.bookingsService.releaseHoldsGuest(dto.guestToken, dto.ids);
   }
@@ -95,6 +100,7 @@ export class BookingsController {
   // Guest "my bookings": the browser sends the tokens it's holding.
   @Post('guest/lookup')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(PublicKeyGuard)
   guestLookup(@Body() dto: GuestTokensDto) {
     return this.bookingsService.findByGuestTokens(dto.tokens);
   }

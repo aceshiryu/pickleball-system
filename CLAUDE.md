@@ -74,9 +74,15 @@ carry the guest's details.
 - **Claim on login.** After Google sign-in the browser POSTs its tokens to `POST /bookings/claim`
   (authed), which sets `customer_id` and nulls the token. `store.googleLogin()` does this, then
   clears `localStorage`.
-- **These endpoints are PUBLIC on purpose** and must stay unauthenticated: `guest/*`, plus
-  `GET /bookings/availability`, `GET /courts`, `GET /overrides` (the calendar renders before
-  sign-in). None expose PII; all mutations except the guest booking flow stay `@Roles`-guarded.
+- **These endpoints are behind the web-key gate, not fully public** (`PublicKeyGuard`): `guest/*`,
+  `GET /bookings/availability`, `GET /courts`, `GET /overrides`, `GET /settings`. The web apps ship
+  a shared `WEB_PUBLIC_API_KEY` as `NEXT_PUBLIC_WEB_KEY` and send it as `X-Web-Key`. This is a bar
+  against casual/direct access (revocable, rate-limited), **not a secret** — the key is extractable
+  from the browser bundle, so treat these as "serves anyone running the web app." It unlocks ONLY
+  these low-sensitivity endpoints; admin/data endpoints stay on `ApiAuthGuard + @Roles`, and never
+  put an admin `pickleball-…` key in the browser. The gate is **inactive until `WEB_PUBLIC_API_KEY`
+  is set** (so dev and an un-provisioned deploy don't break); set it in production to turn it on.
+  There is deliberately no public `/auth/register` (it used to mint admin accounts).
 - **Web routing:** `/book` is the guest-capable calendar; `/login` is explicit sign-in only and
   redirects to `/book` once authed. The store branches every booking action on `loggedIn`, and the
   bookings query looks guests up by token instead of `/bookings/mine`.

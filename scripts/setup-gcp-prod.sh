@@ -152,6 +152,13 @@ REPO="projects/${PROJECT_ID}/locations/${REGION}/connections/${CONN}/repositorie
 # pair separator. CORS_ORIGINS is itself a comma-separated list, and with the
 # default separator gcloud splits mid-value and fails with
 # "Bad syntax for dict arg". Backslash-escaping the comma does NOT work here.
+# Web key: gates the guest + calendar-read endpoints (PublicKeyGuard). The SAME
+# value goes to the API (WEB_PUBLIC_API_KEY) and both web apps (NEXT_PUBLIC_WEB_KEY,
+# inlined into the bundle). It's a bar against direct access, not a secret —
+# rotate it by re-running with a new value. Generated once here.
+WEB_KEY="web_$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-32)"
+echo "  Generated web key (also embedded in the web bundle): ${WEB_KEY}"
+
 API_SUBS="^;^_GCP_PROJECT_ID=${PROJECT_ID}"
 API_SUBS="${API_SUBS};_NODE_ENV=production;_PORT=8080"
 API_SUBS="${API_SUBS};_DB_NAME=postgres"
@@ -162,15 +169,18 @@ API_SUBS="${API_SUBS};_THROTTLE_TTL=60;_THROTTLE_LIMIT=100"
 API_SUBS="${API_SUBS};_GOOGLE_CLIENT_ID=${V_GID}"
 API_SUBS="${API_SUBS};_SUPABASE_URL=${V_SURL}"
 API_SUBS="${API_SUBS};_SUPABASE_RECEIPTS_BUCKET=receipts;_SUPABASE_PUBLIC_BUCKET=brand"
+API_SUBS="${API_SUBS};_WEB_PUBLIC_API_KEY=${WEB_KEY}"
 
 # NEXT_PUBLIC_* is inlined at BUILD time by Next, so it comes from the trigger
 # substitution rather than App Engine env_variables.
 WEB_SUBS="_GCP_PROJECT_ID=${PROJECT_ID}"
 WEB_SUBS="${WEB_SUBS},_NEXT_PUBLIC_API_BASE_URL=https://${API_HOST}/api"
 WEB_SUBS="${WEB_SUBS},_NEXT_PUBLIC_GOOGLE_CLIENT_ID=${V_GID}"
+WEB_SUBS="${WEB_SUBS},_NEXT_PUBLIC_WEB_KEY=${WEB_KEY}"
 
 ADMIN_SUBS="_GCP_PROJECT_ID=${PROJECT_ID}"
 ADMIN_SUBS="${ADMIN_SUBS},_NEXT_PUBLIC_API_BASE_URL=https://${API_HOST}/api"
+ADMIN_SUBS="${ADMIN_SUBS},_NEXT_PUBLIC_WEB_KEY=${WEB_KEY}"
 
 # No --included-files on tag triggers: on a tag push Cloud Build diffs against
 # the parent commit, so a release touching only apps/api would silently skip web.

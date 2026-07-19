@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
+import { PublicKeyGuard } from '../common/guards/public-key.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CourtsService } from './courts.service';
@@ -20,9 +21,10 @@ import { UpdateCourtDto } from './dto/update-court.dto';
 export class CourtsController {
   constructor(private readonly courtsService: CourtsService) {}
 
-  // Public: the customer booking calendar (guests included) needs the court
-  // list — names and rates, no sensitive data. Mutations below stay admin-only.
+  // Web-key gated: the customer booking calendar (guests included) needs the
+  // court list — names and rates. Mutations below stay admin-only.
   @Get()
+  @UseGuards(PublicKeyGuard)
   findAll() {
     return this.courtsService.findAll();
   }

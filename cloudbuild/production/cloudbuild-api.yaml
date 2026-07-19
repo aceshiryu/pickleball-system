@@ -58,6 +58,8 @@ steps:
       - 'SUPABASE_URL=${_SUPABASE_URL}'
       - 'SUPABASE_RECEIPTS_BUCKET=${_SUPABASE_RECEIPTS_BUCKET}'
       - 'SUPABASE_PUBLIC_BUCKET=${_SUPABASE_PUBLIC_BUCKET}'
+      # Web-key gate for the guest + calendar-read endpoints (PublicKeyGuard).
+      - 'WEB_PUBLIC_API_KEY=${_WEB_PUBLIC_API_KEY}'
 
   - name: 'node:${_NODE_VERSION}'
     id: 'install-prod-deps'
@@ -128,6 +130,8 @@ substitutions:
   _SUPABASE_URL: ''
   _SUPABASE_RECEIPTS_BUCKET: 'receipts'
   _SUPABASE_PUBLIC_BUCKET: 'brand'
+  # Same value as the web apps' _NEXT_PUBLIC_WEB_KEY. Set by setup-gcp-prod.sh.
+  _WEB_PUBLIC_API_KEY: ''
 
 availableSecrets:
   secretManager:

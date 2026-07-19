@@ -14,6 +14,8 @@ steps:
     args: ['run', 'build:admin']
     env:
       - 'NEXT_PUBLIC_API_BASE_URL=${_NEXT_PUBLIC_API_BASE_URL}'
+      # Web key for the guest + calendar-read endpoints (same value as the API's WEB_PUBLIC_API_KEY).
+      - 'NEXT_PUBLIC_WEB_KEY=${_NEXT_PUBLIC_WEB_KEY}'
 
   # Next.js output:'standalone' → self-contained server under apps/admin/.next/standalone.
   # Copy the static assets + public/ that standalone omits, drop the env app.yaml,
@@ -70,6 +72,7 @@ substitutions:
   _NODE_VERSION: '22'
   _GCP_PROJECT_ID: 'pickleball-system-502915'
   _NEXT_PUBLIC_API_BASE_URL: 'https://demo-api.bookly-ph.com/api'
+  _NEXT_PUBLIC_WEB_KEY: ''
 
 options:
   logging: CLOUD_LOGGING_ONLY
