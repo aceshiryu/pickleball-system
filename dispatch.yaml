@@ -8,7 +8,7 @@
 # records created, or these rules match nothing.
 #
 # Rules are evaluated top to bottom and the FIRST match wins. Anything that
-# matches no rule falls through to the `default` service (the web app).
+# matches no rule falls through to the `default` service (a bootstrap stub, not the web app).
 
 dispatch:
   # --- API ---------------------------------------------------------------
@@ -22,8 +22,8 @@ dispatch:
   # The hostnames are kept apart in middleware.ts, which sends this host to
   # /admin and refuses to serve /admin on the customer host.
   - url: 'demo-admin.bookly-ph.com/*'
-    service: default
+    service: pickleball-web
 
   # --- Customer app ------------------------------------------------------
   - url: 'demo-customer.bookly-ph.com/*'
-    service: default
+    service: pickleball-web

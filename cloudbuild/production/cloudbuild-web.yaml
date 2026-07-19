@@ -57,20 +57,20 @@ steps:
       - '-c'
       - |
         VERSIONS=$(gcloud app versions list \
-          --service=default \
+          --service=pickleball-web \
           --project=${_GCP_PROJECT_ID} \
           --sort-by=~version.createTime \
           --format='value(version.id)' | tail -n +40)
         if [ -n "$$VERSIONS" ]; then
           gcloud app versions delete $$VERSIONS \
-            --service=default \
+            --service=pickleball-web \
             --project=${_GCP_PROJECT_ID} \
             --quiet
         fi
 
 substitutions:
   _NODE_VERSION: '22'
-  _GCP_PROJECT_ID: 'pickleball'
+  _GCP_PROJECT_ID: 'pickleball-system-502915'
   _NEXT_PUBLIC_API_BASE_URL: 'https://demo-api.bookly-ph.com/api'
   # Which hostname serves which surface. Must match dispatch.yaml. Leaving
   # either blank disables that half of the split in middleware.ts.

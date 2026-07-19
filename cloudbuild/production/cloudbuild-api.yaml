@@ -94,7 +94,7 @@ steps:
 # same everywhere and identifies nothing on its own.
 substitutions:
   _NODE_VERSION: '22'
-  _GCP_PROJECT_ID: 'pickleball'
+  _GCP_PROJECT_ID: 'pickleball-system-502915'
   _NODE_ENV: 'production'
   _PORT: '8080'
   _DB_NAME: 'postgres'

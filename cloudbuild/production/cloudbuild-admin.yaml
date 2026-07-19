@@ -64,7 +64,7 @@ steps:
 
 substitutions:
   _NODE_VERSION: '22'
-  _GCP_PROJECT_ID: 'pickleball'
+  _GCP_PROJECT_ID: 'pickleball-system-502915'
   _NEXT_PUBLIC_API_BASE_URL: 'https://replace-me-api.appspot.com/api'
 
 options:
