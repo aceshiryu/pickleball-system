@@ -1,8 +1,12 @@
 steps:
   - name: 'node:${_NODE_VERSION}'
     id: 'install'
-    entrypoint: 'npm'
-    args: ['ci']
+    # node:22 bundles npm 10, which rejects a package-lock.json written by
+    # npm 11 with spurious "Missing: <pkg> from lock file" errors — the lock is
+    # fine, the resolvers just disagree. Match the npm that authors the lock so
+    # the committed file validates here exactly as it does locally.
+    entrypoint: 'bash'
+    args: ['-c', 'npm install -g npm@11 --silent && npm ci']
 
   - name: 'node:${_NODE_VERSION}'
     id: 'build-admin'
