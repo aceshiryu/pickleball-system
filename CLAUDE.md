@@ -74,15 +74,22 @@ carry the guest's details.
 - **Claim on login.** After Google sign-in the browser POSTs its tokens to `POST /bookings/claim`
   (authed), which sets `customer_id` and nulls the token. `store.googleLogin()` does this, then
   clears `localStorage`.
-- **These endpoints are behind the web-key gate, not fully public** (`PublicKeyGuard`): `guest/*`,
-  `GET /bookings/availability`, `GET /courts`, `GET /overrides`, `GET /settings`. The web apps ship
-  a shared `WEB_PUBLIC_API_KEY` as `NEXT_PUBLIC_WEB_KEY` and send it as `X-Web-Key`. This is a bar
-  against casual/direct access (revocable, rate-limited), **not a secret** — the key is extractable
-  from the browser bundle, so treat these as "serves anyone running the web app." It unlocks ONLY
-  these low-sensitivity endpoints; admin/data endpoints stay on `ApiAuthGuard + @Roles`, and never
-  put an admin `pickleball-…` key in the browser. The gate is **inactive until `WEB_PUBLIC_API_KEY`
-  is set** (so dev and an un-provisioned deploy don't break); set it in production to turn it on.
-  There is deliberately no public `/auth/register` (it used to mint admin accounts).
+- **Two tiers of openness, on purpose:**
+  - **Public reads** (no guard): `GET /bookings/availability`, `GET /courts`, `GET /overrides`,
+    `GET /settings`. The calendar (and landing/login branding) must render before sign-in. No PII,
+    except `settings` carries the facility's payment details — the accepted trade-off of an open
+    checkout. Kept open deliberately so a web-key misconfig can't blank the whole app.
+  - **Web-key gated** (`PublicKeyGuard`): the guest booking flow — `guest/hold`,
+    `guest/submit-payment`, `guest/release-holds`, `guest/lookup`. The web apps ship a shared
+    `WEB_PUBLIC_API_KEY` as `NEXT_PUBLIC_WEB_KEY` and send it as `X-Web-Key`.
+- The web key is a **bar, not a secret** — it's extractable from the browser bundle, so it blocks
+  casual/scripted/direct booking but doesn't authenticate. It unlocks ONLY the guest flow; admin/data
+  endpoints stay on `ApiAuthGuard + @Roles`, and an admin `pickleball-…` key must never go in the
+  browser. The gate is **inactive until `WEB_PUBLIC_API_KEY` is set** (dev + un-provisioned deploys
+  keep working); set it in production to turn it on. **Both-or-neither:** the API's `WEB_PUBLIC_API_KEY`
+  and the apps' `NEXT_PUBLIC_WEB_KEY` must match (the latter is build-time inlined — changing it needs
+  a rebuild), or every guest booking 401s.
+- There is deliberately no public `/auth/register` (it used to mint admin accounts).
 - **Web routing:** `/book` is the guest-capable calendar; `/login` is explicit sign-in only and
   redirects to `/book` once authed. The store branches every booking action on `loggedIn`, and the
   bookings query looks guests up by token instead of `/bookings/mine`.

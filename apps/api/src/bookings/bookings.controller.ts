@@ -53,10 +53,9 @@ export class BookingsController {
     return this.bookingsService.findMine(user.sub);
   }
 
-  // Web-key gated: slot states only (open / taken / held), no PII. Guests need
-  // it to see the calendar before signing in, but it's not wide open.
+  // Public: slot states only (open / taken / held), no PII. A calendar read, so
+  // it stays open — the web key gates only the guest booking flow below.
   @Get('availability')
-  @UseGuards(PublicKeyGuard)
   availability() {
     return this.bookingsService.availability();
   }

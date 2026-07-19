@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
-import { PublicKeyGuard } from '../common/guards/public-key.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
@@ -21,11 +20,11 @@ import { SettingsService } from './settings.service';
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
-  // Web-key gated — branding (app name + colors) recolors the whole app,
-  // including the landing/login pages shown before authentication, and this
-  // also carries the facility's payment details, so it's behind the web key.
+  // Public — branding (app name + colors) recolors the whole app, including the
+  // landing/login pages shown before auth. Note it also carries the facility's
+  // payment details (bank/GCash numbers, QR), which a customer must see to pay;
+  // that's the trade-off of an open, guest-friendly checkout.
   @Get()
-  @UseGuards(PublicKeyGuard)
   async get() {
     const s = await this.settingsService.get();
     // Flatten the timestamp to a boolean the console can branch on.
