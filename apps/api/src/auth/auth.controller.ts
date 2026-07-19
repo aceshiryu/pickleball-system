@@ -10,7 +10,6 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { CompleteProfileDto } from './dto/complete-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -29,12 +28,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Admin/staff login with email and password' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
-  }
-
-  @Post('register')
-  @ApiOperation({ summary: 'Register a new admin account' })
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto.email, dto.password);
   }
 
   @Post('google')

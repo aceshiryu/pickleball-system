@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
@@ -85,28 +85,4 @@ describe('AuthService', () => {
     });
   });
 
-  describe('register', () => {
-    it('throws on existing email', async () => {
-      users.findByEmail.mockResolvedValue({ id: 'u1' } as never);
-      await expect(
-        service.register('a@b.com', 'password'),
-      ).rejects.toBeInstanceOf(ConflictException);
-    });
-
-    it('creates user and returns token', async () => {
-      users.findByEmail.mockResolvedValue(null);
-      users.create.mockResolvedValue({
-        id: 'u2',
-        email: 'a@b.com',
-      } as never);
-      jwt.signAsync.mockResolvedValue('new.token');
-
-      const result = await service.register('a@b.com', 'password');
-      expect(users.create).toHaveBeenCalledWith('a@b.com', 'password', {
-        role: 'admin',
-      });
-      expect(result.accessToken).toBe('new.token');
-      expect(result.user).toMatchObject({ id: 'u2', email: 'a@b.com' });
-    });
-  });
 });

@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
@@ -56,16 +52,9 @@ export class AuthService {
     return { accessToken: await this.sign(user), user: toPublicUser(user) };
   }
 
-  async register(email: string, password: string) {
-    const existing = await this.usersService.findByEmail(email);
-    if (existing) {
-      throw new ConflictException('Email already registered');
-    }
-    const user = await this.usersService.create(email, password, {
-      role: 'admin',
-    });
-    return { accessToken: await this.sign(user), user: toPublicUser(user) };
-  }
+  // Admin accounts are seeded (db/seeds), and customers sign in with Google.
+  // There is deliberately NO public registration — an /auth/register that
+  // minted admin tokens for anyone was removed.
 
   // "Continue with Google": verify the ID token, then upsert the customer.
   async googleLogin(idToken: string) {
