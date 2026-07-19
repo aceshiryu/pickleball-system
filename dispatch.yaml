@@ -1,0 +1,29 @@
+# App Engine hostname routing for the demo deployment.
+#
+# Deployed on its own, separately from the services:
+#   gcloud app deploy dispatch.yaml --project=<project>
+#
+# Each custom domain must already be mapped to the App Engine app
+# (`gcloud app domain-mappings create demo-api.bookly-ph.com`) and its DNS
+# records created, or these rules match nothing.
+#
+# Rules are evaluated top to bottom and the FIRST match wins. Anything that
+# matches no rule falls through to the `default` service (the web app).
+
+dispatch:
+  # --- API ---------------------------------------------------------------
+  # NestJS, serving under the /api prefix (Swagger at /api-docs).
+  - url: 'demo-api.bookly-ph.com/*'
+    service: pickleball-api
+
+  # --- Admin console -----------------------------------------------------
+  # Served by the same deployable as the customer app: the console is a route
+  # *inside* the Next.js app (apps/web/src/app/admin), not a separate service.
+  # The hostnames are kept apart in middleware.ts, which sends this host to
+  # /admin and refuses to serve /admin on the customer host.
+  - url: 'demo-admin.bookly-ph.com/*'
+    service: default
+
+  # --- Customer app ------------------------------------------------------
+  - url: 'demo-customer.bookly-ph.com/*'
+    service: default
