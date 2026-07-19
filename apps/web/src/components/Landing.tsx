@@ -26,7 +26,7 @@ export default function Landing() {
           <nav style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: isMobile ? 12 : 18 }}>
             {!isMobile && <a href="#features" style={link}>Features</a>}
             {!isMobile && <a href="#how" style={link}>How it works</a>}
-            <Link href="/login" style={{ ...btnPrimary, padding: "9px 18px", fontSize: 14 }}>Log in</Link>
+            <Link href="/login" style={{ ...btnPrimary, padding: "9px 18px", fontSize: 14 }}>Book now</Link>
           </nav>
         </div>
       </header>
@@ -42,7 +42,7 @@ export default function Landing() {
               Book your pickleball court in <span style={{ color: C.green }}>seconds.</span>
             </h1>
             <p style={{ fontSize: isMobile ? 15.5 : 17, lineHeight: 1.6, color: C.muted, margin: 0, maxWidth: 520 }}>
-              Pick your slot, pay online, and get instant confirmation. {branding.appName} makes reserving courts effortless for players, and painless to manage for facilities.
+              Pick your slot, pay online, and get instant confirmation. {branding.appName} makes reserving a court quick, clear, and effortless — so you spend less time booking and more time playing.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 4 }}>
               <Link href="/login" style={{ ...btnPrimary, padding: "14px 26px", fontSize: 15 }}>Book a court →</Link>

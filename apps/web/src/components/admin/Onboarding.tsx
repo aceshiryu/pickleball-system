@@ -377,17 +377,50 @@ function PaymentsStep() {
   );
 }
 
+type PendingStaff = { name: string; email: string; access: "staff" };
+
 function StaffStep({ staff, addStaff }: any) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [created, setCreated] = useState<{ name: string; pw: string } | null>(null);
+  // Staged locally and only written to the DB on "Create". This is the "list
+  // them first before submitting" flow — nothing hits /staff until submit.
+  const [pending, setPending] = useState<PendingStaff[]>([]);
+  const [created, setCreated] = useState<{ name: string; pw: string }[]>([]);
+  const [busy, setBusy] = useState(false);
   const valid = name.trim() && email.trim();
+
+  // Guard duplicate emails across both what's staged and what already exists.
+  const emailTaken = (e: string) =>
+    pending.some((p) => p.email.toLowerCase() === e.toLowerCase()) ||
+    staff.some((s: any) => s.email.toLowerCase() === e.toLowerCase());
+
+  function stage() {
+    const e = email.trim();
+    if (!valid || emailTaken(e)) return;
+    setPending((p) => [...p, { name: name.trim(), email: e, access: "staff" }]);
+    setName(""); setEmail("");
+  }
+
+  async function createAll() {
+    setBusy(true);
+    const results: { name: string; pw: string }[] = [];
+    for (const s of pending) {
+      try {
+        const c = await addStaff(s);
+        results.push({ name: c.name, pw: c.tempPassword });
+      } catch { /* store toasts the error; skip this one */ }
+    }
+    setCreated((prev) => [...prev, ...results]);
+    setPending([]);
+    setBusy(false);
+  }
 
   return (
     <>
       <H>Staff <span style={{ fontSize: 12, fontWeight: 500, color: C.faint }}>· optional</span></H>
-      <P>Front-desk accounts. You can skip this and add them later from User management.</P>
+      <P>Front-desk accounts. Add them to the list, review, then create them all at once. You can skip this and add staff later from User management.</P>
 
+      {/* Already created this session or earlier. */}
       {staff.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
           {staff.map((s: any) => (
@@ -396,36 +429,57 @@ function StaffStep({ staff, addStaff }: any) {
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{s.name}</div>
                 <div style={{ fontSize: 12, color: C.muted }}>{s.email}</div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.indigoInk, background: C.indigoBg, padding: "2px 8px", borderRadius: 999 }}>{s.access === "admin" ? "Admin" : "Staff"}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.offInkD, background: C.offBg, padding: "2px 8px", borderRadius: 999 }}>Created</span>
             </div>
           ))}
         </div>
       )}
 
-      {created && (
+      {/* Staged, not yet written to the DB. */}
+      {pending.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+          {pending.map((s, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", border: `1px solid ${C.border2}`, borderRadius: 11 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{s.name}</div>
+                <div style={{ fontSize: 12, color: C.muted }}>{s.email}</div>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.peakInk, background: C.peakBg, padding: "2px 8px", borderRadius: 999 }}>Pending</span>
+              <button onClick={() => setPending((p) => p.filter((_, j) => j !== i))} style={{ fontSize: 12.5, fontWeight: 600, color: C.blockInk2, background: "none", border: "none", cursor: "pointer" }}>Remove</button>
+            </div>
+          ))}
+          <button
+            onClick={createAll}
+            disabled={busy}
+            style={{ ...primaryBtn, width: "100%", padding: 11, fontSize: 13.5, boxShadow: "none", marginTop: 2, opacity: busy ? 0.7 : 1, cursor: busy ? "not-allowed" : "pointer" }}
+          >{busy ? "Creating…" : `Create ${pending.length} account${pending.length > 1 ? "s" : ""}`}</button>
+        </div>
+      )}
+
+      {created.length > 0 && (
         <div style={{ background: C.offBg, border: `1px solid ${C.offBorder}`, borderRadius: 12, padding: 12, marginBottom: 12 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: C.offInkD }}>{created.name}&apos;s temporary password</div>
-          <code style={{ display: "block", marginTop: 6, fontFamily: "monospace", fontSize: 15, fontWeight: 700 }}>{created.pw}</code>
-          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>Shown once — copy it now.</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: C.offInkD, marginBottom: 6 }}>Temporary passwords — shown once, copy them now</div>
+          {created.map((c, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "4px 0", borderTop: i ? `1px solid ${C.offBorder}` : "none" }}>
+              <span style={{ fontSize: 12.5, color: C.slate }}>{c.name}</span>
+              <code style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700 }}>{c.pw}</code>
+            </div>
+          ))}
         </div>
       )}
 
       <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
         <div style={{ flex: 1 }}><L>Name</L><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jamie Cruz" style={fld} /></div>
-        <div style={{ flex: 1 }}><L>Email</L><input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@facility.com" style={fld} /></div>
+        <div style={{ flex: 1 }}><L>Email</L><input value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") stage(); }} placeholder="name@facility.com" style={fld} /></div>
       </div>
+      {email.trim() && emailTaken(email.trim()) && (
+        <div style={{ fontSize: 12, color: "#e11d48", marginBottom: 8 }}>That email is already on the list.</div>
+      )}
       <button
-        onClick={async () => {
-          if (!valid) return;
-          try {
-            const c = await addStaff({ name: name.trim(), email: email.trim(), access: "staff" });
-            setCreated({ name: c.name, pw: c.tempPassword });
-            setName(""); setEmail("");
-          } catch { /* store toasts the error */ }
-        }}
-        disabled={!valid}
-        style={{ ...primaryBtn, width: "100%", padding: 11, fontSize: 13.5, boxShadow: "none", background: valid ? primaryBtn.background : "#cbd5cf", cursor: valid ? "pointer" : "not-allowed" }}
-      >Add staff account</button>
+        onClick={stage}
+        disabled={!valid || emailTaken(email.trim())}
+        style={{ ...primaryBtn, width: "100%", padding: 11, fontSize: 13.5, boxShadow: "none", background: valid && !emailTaken(email.trim()) ? primaryBtn.background : "#cbd5cf", cursor: valid && !emailTaken(email.trim()) ? "pointer" : "not-allowed" }}
+      >Add to list</button>
     </>
   );
 }
