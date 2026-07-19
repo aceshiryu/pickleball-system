@@ -59,6 +59,30 @@ which reads local `getFullYear()`/`getMonth()`/`getDate()` parts. Never `.toISOS
 - Conflicts are enforced server-side (`assertSlotsFree` → 409, `assertWithinOpeningHours` → 400),
   not just hidden in the UI.
 
+## Guest booking
+
+Customers can book **without an account**; signing in is optional and offered afterwards.
+`bookings.customerId` is nullable (walk-ins already used this) and `contactName/Phone/Email`
+carry the guest's details.
+
+- **Ownership is a claim token, not email.** A guest hold (`POST /bookings/guest/hold`) generates
+  a secret `booking.guest_token`, returned once. The browser keeps `{token, ids}` in
+  `localStorage` (`pkl_guest`). Every guest-only call — `guest/submit-payment`, `guest/release-holds`,
+  `guest/lookup` — presents the token, and the service checks it (`assertOwnsAll`) before touching
+  a row. Possession of the token IS the authorization; there is no email-matching (which would let
+  a guest hand a booking to whoever owns that address).
+- **Claim on login.** After Google sign-in the browser POSTs its tokens to `POST /bookings/claim`
+  (authed), which sets `customer_id` and nulls the token. `store.googleLogin()` does this, then
+  clears `localStorage`.
+- **These endpoints are PUBLIC on purpose** and must stay unauthenticated: `guest/*`, plus
+  `GET /bookings/availability`, `GET /courts`, `GET /overrides` (the calendar renders before
+  sign-in). None expose PII; all mutations except the guest booking flow stay `@Roles`-guarded.
+- **Web routing:** `/book` is the guest-capable calendar; `/login` is explicit sign-in only and
+  redirects to `/book` once authed. The store branches every booking action on `loggedIn`, and the
+  bookings query looks guests up by token instead of `/bookings/mine`.
+- **Known gap:** `GET /bookings/:id/proof` is still authed, so a guest can't re-view a receipt they
+  just uploaded (submitting works). Add a token-scoped guest proof endpoint if that's needed.
+
 ## Persistence
 
 - **All entities are soft-delete capable** (`@DeleteDateColumn`). Hard deletes would cascade
