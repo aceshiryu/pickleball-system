@@ -100,6 +100,46 @@ Open in a separate window/incognito so you're a real customer, not the admin.
 
 ---
 
+## Reset between demos
+
+Clear the data so the next run starts clean. Everything lives in the `public` schema of the
+Supabase `postgres` database (there's no separate "demo" schema — `DB_SCHEMA` was removed, it's
+just `public`). **Run these against the demo DB only** — double-check `DB_HOST`/`DB_NAME` first;
+`TRUNCATE`/`DELETE` are irreversible.
+
+Pick the level of clean you need:
+
+**Option A — clear only the bookings you made (keep the facility set up).** Fastest for re-running
+the customer→approve flow without re-onboarding. Keeps courts, hours, payment methods, branding,
+and the admin.
+```sql
+TRUNCATE "booking_slots", "bookings" RESTART IDENTITY CASCADE;
+DELETE FROM "users" WHERE "role" = 'customer';   -- the demo customers who booked
+```
+
+**Option B — full data clear, back to a fresh un-onboarded facility.** Wipes the facility config
+too, so the onboarding wizard runs again from scratch; the seeded admin still logs in.
+```sql
+TRUNCATE "booking_slots", "bookings", "overrides", "courts", "settings", "api_keys"
+  RESTART IDENTITY CASCADE;
+DELETE FROM "users" WHERE "role" <> 'admin';      -- drop customers + staff, keep the admin
+```
+Dropping the `settings` row is what makes onboarding restart — the API recreates it with the
+AfterHours defaults on the next request.
+
+**Option C — nuclear (rebuild the schema).** When you want a truly pristine database (e.g. after
+a schema change), drop and re-migrate instead — see `docs/DEPLOY-PROD.md`:
+```sql
+DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;
+```
+then `npm run migration && npm run seed` (recreates the schema and the admin).
+
+After A or B the schema is untouched, so no migration is needed — but if you cleared the admin by
+mistake (or used Option C), `npm run seed` puts `admin@pickleplay.co` / `P@ssw0rd123` back.
+
+---
+
 ## Talking points — what's genuinely strong
 
 - **Real holds, server-enforced.** A 10-minute hold blocks the slot for everyone the instant a
